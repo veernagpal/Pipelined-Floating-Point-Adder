@@ -97,7 +97,9 @@ Modules to implement the Floating point addition algorithm :
           
           After normalization, the final sign, exponent, and mantissa fields are combined to form a 32-bit IEEE-754 single-precision result.
 
-The 3 pipeline registers store and pass the relevant signals from one stage to the next at every clock edge
+7. Pipeline Registers
+
+        The 3 pipeline registers store and pass the relevant signals from one stage to the next at every clock edge
 
 Considering the following example to get an understanding of the Datapath
 
