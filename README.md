@@ -351,12 +351,15 @@ Examples of PASS CASES (Tolerance = 1e-4)
 <img width="540" height="750" alt="image" src="https://github.com/user-attachments/assets/f70ebaff-11e2-4bff-8220-c915fd6b2a7a" />
 
 
+
 <img width="512" height="761" alt="image" src="https://github.com/user-attachments/assets/983de4e6-dcff-4cf1-af88-29e0ee95bb2b" />
 
 
 Examples of FAIL CASES (Tolerance = 1e-4)
 
+
 <img width="452" height="241" alt="image" src="https://github.com/user-attachments/assets/b1644f45-e18e-4400-a4c6-5e3c8870612c" />
+
 
 
 <img width="442" height="242" alt="image" src="https://github.com/user-attachments/assets/fda7afe5-ddcc-426e-88a5-23c9036039a9" />
@@ -366,7 +369,9 @@ Summaries Obtained for Different Tolerances :
 
 1e-4 :
 
+
 <img width="407" height="202" alt="image" src="https://github.com/user-attachments/assets/5f28e532-eee2-4044-833b-0f3a62a25282" />
+
 
 
 <img width="387" height="201" alt="image" src="https://github.com/user-attachments/assets/60a33704-e10b-4c0d-bdf3-2f979749f0af" />
@@ -380,27 +385,36 @@ Summaries Obtained for Different Tolerances :
 
 1e-5 :
 
+
 <img width="372" height="191" alt="image" src="https://github.com/user-attachments/assets/a761d5b4-127a-4ed3-901c-a0c7da5c74cc" />
+
 
 
 <img width="372" height="210" alt="image" src="https://github.com/user-attachments/assets/14f30306-d9b3-4657-9d3a-32719cddc076" />
 
 
+
 <img width="377" height="192" alt="image" src="https://github.com/user-attachments/assets/16912051-d2fa-4d9a-abed-a2ddf3637b4d" />
+
 
 
 <img width="390" height="195" alt="image" src="https://github.com/user-attachments/assets/c1d8c80c-0a6a-4244-b641-b21eae2e35a5" />
 
 
+
 1e-6 : 
 
+
 <img width="391" height="206" alt="image" src="https://github.com/user-attachments/assets/c671c8af-584b-45ec-8381-64e6df75e48c" />
+
 
 
 <img width="412" height="216" alt="image" src="https://github.com/user-attachments/assets/54d82bca-889a-49da-bf4d-243d9b2d4ff8" />
 
 
+
 <img width="420" height="192" alt="image" src="https://github.com/user-attachments/assets/0455cea1-1b59-4876-a008-aa4399a2a7c3" />
+
 
 
 <img width="407" height="207" alt="image" src="https://github.com/user-attachments/assets/4e7ec17c-6566-4564-8d38-8b3141785242" />
