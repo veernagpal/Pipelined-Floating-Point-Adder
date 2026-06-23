@@ -189,6 +189,12 @@ This creates:
 
 About the Testing Framework : 
 
-Stimulus Generation : The file generate_stimulus.py generates random floating-point operands and writes them into stimulus.txt. Each line of stimulus.txt contains two hexadecimal values:     
+Stimulus Generation :
 
-     A_HEX B_HEX
+The script generate_stimulus.py is used to create the input vectors for the RTL simulation. Its main purpose is to generate floating-point operands in Python, convert them into exact 32-bit IEEE-754 hexadecimal form, and write them into stimulus.txt so that the Verilog testbench can read them directly.
+
+The script uses Python’s random module to generate a wide range of input values and the struct module to handle IEEE-754 conversion. The helper function float_to_hex() takes a Python floating-point value, packs it into single-precision format using "struct.pack('!f', f)" , and then unpacks the same 4 bytes as a 32-bit integer using "struct.unpack('!I', , ,)". This integer is finally converted into an 8-character hexadecimal string using "hex(__)[2:].zfill(8)".
+
+def float_to_hex(f):
+              
+     "return hex(struct.unpack('!I', struct.pack('!f', f))[0])[2:].zfill(8)"
