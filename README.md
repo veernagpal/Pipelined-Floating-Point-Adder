@@ -108,6 +108,87 @@ Considering the following example to get an understanding of the Datapath
 <img width="771" height="787" alt="Screenshot 2026-06-24 012313" src="https://github.com/user-attachments/assets/4a9ffb06-820a-4a5c-bba5-0e7df9505a16" />
 
 
-
 OUTPUT VERIFICATION VIA WAVEFORM ANALYSIS
 
+<img width="1810" height="277" alt="image" src="https://github.com/user-attachments/assets/1f69756e-b2e8-4c28-b09c-ac7db711f656" />
+
+The following test cases were applied in the waveform testbench to check the basic operation of the pipelined floating-point adder:
+
+     - Test Case 1: 
+       - Input A: `32'h3F800000` = `1.0`
+       - Input B: `32'h40000000` = `2.0`
+       - Expected Result: `3.0`
+       - Expected Hex: `32'h40400000`
+     
+     - Test Case 2: 
+       - Input A: `32'h40400000` = `3.0`
+       - Input B: `32'h40800000` = `4.0`
+       - Expected Result: `7.0`
+       - Expected Hex: `32'h40E00000`
+     
+     - Test Case 3:
+       - Input A: `32'h3F000000` = `0.5`
+       - Input B: `32'h3F800000` = `1.0`
+       - Expected Result: `1.5`
+       - Expected Hex: `32'h3FC00000`
+     
+     - Test Case 4:
+       - Input A: `32'hBF800000` = `-1.0`
+       - Input B: `32'h3F800000` = `1.0`
+       - Expected Result: `0.0`
+       - Expected Hex: `32'h00000000`
+     
+     - Test Case 5:
+       - Input A: `32'h41200000` = `10.0`
+       - Input B: `32'hC0500000` = `-3.25`
+       - Expected Result: `6.75`
+       - Expected Hex: `32'h40D80000`
+
+These inputs were given one after another on consecutive positive clock edges. The output for each input pair appears only after the pipeline latency (3 clock cycles).
+
+PYTHON BASED TESTING ENVIRONMENT 
+
+A Python-based verification framework was developed to automate the testing of the pipelined floating-point adder.
+
+The verification flow is:
+
+<img width="390" height="620" alt="image" src="https://github.com/user-attachments/assets/b3a6ff49-a34a-459e-8b2a-553d20c428ba" />
+
+
+The Python environment performs three main tasks:
+
+     1.Generates random IEEE-754 floating-point test vectors
+     2.Runs the Verilog testbench using those input vectors
+     3.Compares RTL-generated outputs with Python reference results
+
+to run the python testing framework : 
+
+1: Generate Test Vectors
+
+     python generate_stimulus.py
+
+This creates:
+
+     stimulus.txt
+
+2: Compile the RTL and Testbench
+
+     iverilog -o fp_pipelined_test.out FP_Adder_Pipelined.v tb_FP_Adder_Pipelined.v
+
+3: Run the RTL Simulation
+
+     vvp fp_pipelined_test.out
+
+This creates:
+
+     rtl_results_pipelined.txt
+     
+4: Run the Python Tester
+
+     python test_pipelined.py
+
+About the Testing Framework : 
+
+Stimulus Generation : The file generate_stimulus.py generates random floating-point operands and writes them into stimulus.txt. Each line of stimulus.txt contains two hexadecimal values:     
+
+     A_HEX B_HEX
