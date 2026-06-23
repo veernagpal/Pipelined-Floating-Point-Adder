@@ -239,7 +239,7 @@ Thus The result is observed on the 4th clock cycle relative to when the input wa
 
 The output capture condition is implemented as:
 
-     if ((cycle_count > PIPELINE_LATENCY) && (output_count < input_count)) begin
+     if ((cycle_count >= PIPELINE_LATENCY) && (output_count < input_count)) begin
          $fwrite(outfile, "%08h\n", result);
          output_count = output_count + 1;
      end
@@ -339,5 +339,12 @@ VERIFICATION OUTPUTS:
 
 <img width="1506" height="55" alt="image" src="https://github.com/user-attachments/assets/adc5a46f-23d2-4e17-b62f-e5b5cc3f446d" />
 
+
+
 <img width="1917" height="152" alt="image" src="https://github.com/user-attachments/assets/c4c33a07-d8c1-42c2-a4ae-a7d6fdba20a1" />
+
+
+<img width="1486" height="37" alt="image" src="https://github.com/user-attachments/assets/c352fc6b-b977-40cb-8cd9-a31d1a647fe4" />
+
+
 
