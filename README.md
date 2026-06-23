@@ -287,7 +287,7 @@ to_float32(), forces Python’s computed result into single-precision format.
 
 This step is needed because Python normally uses double-precision floating-point internally. Since the RTL design works with 32-bit single-precision values, the expected result must also be rounded into FP32 format before comparison.
 
-he script then reads all the original input vectors from stimulus.txt.
+The script then reads all the original input vectors from stimulus.txt.
 
      stimulus = []
      
