@@ -23,6 +23,7 @@ The Top level data path is organised as :
 
  <img width="332" height="530" alt="image" src="https://github.com/user-attachments/assets/dc047ac1-7e42-4b63-a66b-b889a0a9f0c9" />
 
+
 PIPELINE STAGES:
 
 Stage 1: Unpack and Exponent Comparison
@@ -42,3 +43,65 @@ Stage 3: Mantissa Arithmetic
 Stage 4: Normalization and Packing
 
     The arithmetic result may not be in normalized IEEE-754 form. The normalize block shifts the mantissa and adjusts the exponent accordingly. Finally, the pack block combines the sign, exponent, and mantissa into a 32-bit floating-point result.
+
+Modules to implement the Floating point addition algorithm : 
+
+1. unpack
+
+          The unpack module extracts the three IEEE-754 fields from each 32-bit input operand:
+          
+          Sign bit
+          Exponent field
+          Mantissa field
+          
+          For normalized numbers, the hidden leading 1 is restored to form the complete mantissa used during arithmetic.
+          
+          Inputs:
+          Floating-point operands A and B
+          
+          Outputs:
+          Sign, exponent, and mantissa components of each operand
+
+2. exponent_compare
+
+          Floating-point addition requires both operands to have the same exponent. This module compares the exponents of the two operands, determines which operand has the larger exponent, and computes the exponent difference.
+          
+          The exponent difference is later used to shift the mantissa of the smaller operand.
+
+3. align_mantissa
+
+          The mantissa corresponding to the smaller exponent is right-shifted by the exponent difference. After this step, both operands are aligned to the same exponent and are ready for mantissa arithmetic.
+
+4. mantissa_arithmetic
+
+          This module performs the actual arithmetic operation on the aligned mantissas.
+          
+          If both operands have the same sign, the mantissas are added.
+          If the operands have different signs, subtraction is performed.
+          
+          The output of this stage is an intermediate mantissa result and a result sign.
+
+5.normalize
+
+          The result from the arithmetic stage may not be in normalized IEEE-754 format.
+          
+          IEEE-754 normalized form is:
+          
+          1.xxxxx × 2^n
+          
+          The normalize module shifts the mantissa and updates the exponent so that the result follows normalized floating-point representation.
+          
+          A leading-one detection style approach is used to determine the required shift amount.
+
+6. pack
+          
+          After normalization, the final sign, exponent, and mantissa fields are combined to form a 32-bit IEEE-754 single-precision result.
+
+The 3 pipeline registers store and pass the relevant signals from one stage to the next at every clock edge
+
+Considering the following example to get an understanding of the Datapath
+
+<img width="787" height="822" alt="Screenshot 2026-06-24 012302" src="https://github.com/user-attachments/assets/c7c1aee7-faaf-4163-a0aa-ba362ac352f7" />
+
+<img width="771" height="787" alt="Screenshot 2026-06-24 012313" src="https://github.com/user-attachments/assets/4a9ffb06-820a-4a5c-bba5-0e7df9505a16" />
+
