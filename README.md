@@ -107,5 +107,7 @@ Considering the following example to get an understanding of the Datapath
 
 <img width="771" height="787" alt="Screenshot 2026-06-24 012313" src="https://github.com/user-attachments/assets/4a9ffb06-820a-4a5c-bba5-0e7df9505a16" />
 
+
+
 OUTPUT VERIFICATION VIA WAVEFORM ANALYSIS
 
