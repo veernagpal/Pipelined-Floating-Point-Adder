@@ -21,7 +21,7 @@ Pipeline registers are inserted between major stages. This allows the datapath t
 The Top level data path is organised as : 
 
 
-     <img width="332" height="530" alt="image" src="https://github.com/user-attachments/assets/dc047ac1-7e42-4b63-a66b-b889a0a9f0c9" />
+ <img width="332" height="530" alt="image" src="https://github.com/user-attachments/assets/dc047ac1-7e42-4b63-a66b-b889a0a9f0c9" />
 
 PIPELINE STAGES:
 
