@@ -3,3 +3,4 @@ This project implements a 32-bit IEEE-754 single-precision Floating Point Adder 
 A 32-bit IEEE-754 single-precision floating-point number is represented as:
  Sign	  Exponent	  Mantissa
 1 bit	   8 bits	     23 bits
+                
