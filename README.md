@@ -422,6 +422,59 @@ Summaries Obtained for Different Tolerances :
 
 As the tolerance is reduced, fewer test cases pass because the comparison becomes stricter. The main accuracy loss happens during mantissa alignment, where the mantissa of the smaller-exponent operand is right-shifted. In the current RTL, the bits shifted out are discarded, so some precision gets lost before arithmetic even happens. Since guard, round, and sticky bits are not implemented, these truncation errors show up as small differences from Python’s highly accurate reference result.
 
+
+ASIC FLOW : 
+
+The objective of this stage was to convert the synthesizable Verilog RTL of the 4-stage pipelined IEEE-754 single-precision floating-point adder into a physical ASIC layout. 
+
+The RTL was taken through a complete RTL-to-GDSII flow using OpenLane. The flow starts from the synthesizable Verilog and performs synthesis, floorplanning, placement, clock tree synthesis, routing, static timing analysis, and physical verification. The final output of this process is a GDSII file, which represents the physical layout of the chip block and can be viewed using layout tools such as KLayout or Magic.
+
+The ASIC implementation was performed using the SKY130 PDK and the `sky130_fd_sc_hd` high-density standard-cell library. The SKY130 PDK provides the technology-specific information required for physical implementation, including standard cells, timing models, metal layer definitions, design rules, antenna rules, and layout verification files. The `sky130_fd_sc_hd` library was used to map the RTL logic into real standard cells such as gates, multiplexers, buffers, and flip-flops.
+
+The final goal of this stage was not only to generate a layout, but also to verify that the layout is physically and electrically clean. Therefore, the final OpenLane run was checked for timing closure, DRC correctness, LVS correctness, and antenna safety. A clean result means that the design meets the target clock constraint, follows the SKY130 manufacturing design rules, matches the intended gate-level netlist (LVS satisfied), and importantly does not contain antenna violations that could damage transistor gates during fabrication.
+
+Overview : 
+
+The ASIC flow followed in this project is shown below:
+
+Synthesizable Verilog RTL
+        ↓
+OpenLane Configuration
+        ↓
+RTL Synthesis
+        ↓
+Floorplanning
+        ↓
+Placement
+        ↓
+Clock Tree Synthesis
+        ↓
+Routing
+        ↓
+Static Timing Analysis
+        ↓
+DRC / LVS / Antenna Signoff
+        ↓
+Final GDSII Layout
+
+The RTL-to-GDSII implementation was carried out using OpenLane, which is an open-source automated ASIC design flow. OpenLane acts as the main flow controller and connects multiple EDA tools together to perform the complete ASIC backend flow.
+
+The ASIC flow is not performed by a single tool. Each stage requires a different type of analysis or transformation. For example, synthesis converts RTL into gates, placement assigns physical locations to those gates, routing connects them using metal layers, and signoff checks verify that the final layout is correct and manufacturable.
+
+In this project, OpenLane automated these stages using tools such as Yosys, ABC, OpenROAD, OpenSTA, Magic, Netgen, TritonRoute, and KLayout, along with technology files from the SKY130 PDK.
+
+Tool / Component	Role in the ASIC Flow
+OpenLane	Controls the full RTL-to-GDSII flow and passes design data between tools
+Yosys	Converts Verilog RTL into a gate-level netlist
+ABC	Optimizes logic and maps it to SKY130 standard cells
+OpenROAD	Performs physical design stages such as floorplanning, placement, CTS, routing, and optimization
+OpenSTA	Performs static timing analysis for setup and hold timing
+TritonRoute	Performs detailed routing using physical metal layers
+Magic	Performs DRC checks, layout extraction, and GDS-related verification
+Netgen	Performs LVS comparison between layout-extracted netlist and reference netlist
+KLayout	Used to visually inspect the final GDSII layout
+SKY130 PDK	Provides standard cells, timing models, layout rules, routing rules, DRC/LVS rules, and antenna rules
+
 CURRENT LIMITATIONS :
 
 The following has not been taken care of in the current implementation : 
