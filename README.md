@@ -878,6 +878,10 @@ This file represents the synthesized version of the RTL using SKY130 standard ce
 
 <img width="1052" height="436" alt="image" src="https://github.com/user-attachments/assets/971eb624-0329-4613-985c-691c89bd9fa7" />
 
+
+<img width="701" height="82" alt="image" src="https://github.com/user-attachments/assets/d60c1a48-3076-49c7-8601-340cb190ad5a" />
+
+
 2. Floor-Planning :
 
 Floorplanning is the first major physical design step in the ASIC flow. After synthesis, the design exists as a gate-level netlist made up of SKY130 standard cells, but those cells do not yet have physical locations on silicon. Floorplanning creates the initial physical structure of the chip block so that placement, routing, clock tree synthesis, and signoff can be performed later.
@@ -1459,6 +1463,12 @@ In this project:
      TritonRoute violations = 0
 
 This indicates that detailed routing completed cleanly.
+
+<img width="1482" height="102" alt="image" src="https://github.com/user-attachments/assets/f8f38a75-6c10-472a-948d-b0c86c0b7dd6" />
+
+
+<img width="232" height="90" alt="image" src="https://github.com/user-attachments/assets/1df46c3b-3ae2-4c33-8038-c4ad9cf22b5b" />
+
 
 Routing has a major impact on timing, power, area, and physical correctness.
 
