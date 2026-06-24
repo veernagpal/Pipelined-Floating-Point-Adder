@@ -1266,6 +1266,216 @@ lower maximum operating frequency
 
 Therefore, CTS is required to convert the ideal clock into a real physical clock network that can drive all sequential elements reliably.
 
+During CTS, OpenROAD builds a tree-like clock distribution network from the clock input port to all flip-flops in the design.
+
+A simplified clock tree looks like this:
+
+     Clock input
+         |
+      Clock buffer
+         |
+      ---------------
+      |             |
+     Buffer       Buffer
+      |             |
+     FF group     FF group
+
+Instead of one clock source directly driving every flip-flop, CTS divides the clock signal into multiple branches using clock buffers. This reduces the load on each buffer and helps control clock delay and skew.
+
+CTS mainly tries to control the imperfections of a practical clock which can affect the proper functioning and performance of the circuit such as :
+
+Clock Insertion Delay:
+
+Clock insertion delay is the time taken by the clock signal to travel from the clock input port to a flip-flop.
+
+The clock does not reach the registers instantly. It passes through metal wires and clock buffers, and each of these adds delay.
+
+Insertion delay is not automatically bad. The important thing is that it must be controlled and properly accounted for during static timing analysis.
+
+CTS builds the clock network so that insertion delay is predictable and balanced across the design.
+
+Clock Transition Time:
+
+Clock transition time refers to how fast the clock signal switches from low to high or high to low.
+
+If the clock edge is too slow, flip-flops may not operate reliably. Slow clock transitions can also increase timing uncertainty and power consumption.
+
+Clock buffers help strengthen the clock signal and maintain acceptable transition times across the design.
+
+Clock Fanout:
+
+Fanout refers to the number of loads driven by a signal.
+
+The clock usually has very high fanout because it must drive all flip-flops in the design. If one clock source directly drives every register, the load becomes very large. This can make the clock signal slow and unreliable.
+
+CTS solves this by creating a buffered clock tree.
+
+Instead of:
+
+     One clock source → all flip-flops
+
+CTS creates:
+     
+     Clock source
+         ├── Buffer → group of flip-flops
+         ├── Buffer → group of flip-flops
+         └── Buffer → group of flip-flops
+
+This reduces the load on each clock driver and improves clock quality.
+
+<img width="1217" height="302" alt="image" src="https://github.com/user-attachments/assets/063800d9-7998-417f-a6d6-8b87d40784af" />
+
+5. Routing
+
+Routing is the stage where the physical electrical connections between all placed cells are created using metal wires and vias.
+
+After synthesis, the design is converted into a gate-level netlist. After floorplanning and placement, the standard cells are assigned physical locations inside the core. After Clock Tree Synthesis, the clock network is also inserted. However, at this point, most of the signal connections still need to be physically implemented using actual metal layers.
+
+Routing takes the placed design and connects all nets according to the synthesized netlist.
+
+In simple terms:
+
+After placement:
+The cells know where they are located.
+
+After CTS:
+The clock tree has been inserted.
+
+After routing:
+The cells are physically connected using metal wires and vias.
+
+outing in OpenLane is mainly performed using OpenROAD-based routing tools.
+
+The routing stage is usually divided into two major parts:
+
+1. Global Routing (OpenRoad)
+2. Detailed Routing (TritonRoute)
+
+The main tools involved are:
+
+Global routing plans the approximate route of each net across the chip. Detailed routing then converts those approximate routes into real metal shapes and via connections that obey the SKY130 design rules.
+
+Global Routing :
+
+At this stage, the router does not yet draw the final exact metal wires. Instead, it divides the chip area into routing regions and estimates which regions each net should pass through.
+
+Global routing tries to avoid congested areas and distribute wires across available routing resources. It also estimates wire length and routing demand.
+
+For example, if a signal must connect a cell on the left side of the core to a cell on the right side, global routing decides the approximate path that signal should follow. It may choose a more direct route if space is available, or it may route around congested regions.
+
+Global routing helps identify whether the placement is routable. If too many nets need to pass through the same region, congestion can occur. Congestion may later cause routing detours, timing problems, or routing violations.
+
+Detailed Routing
+
+This is the stage where the actual physical metal wires and vias are created.
+
+After global routing decides approximate paths, detailed routing converts those paths into real layout geometry. It chooses exact routing tracks, metal layers, via locations, and wire shapes.
+
+Detailed routing must obey all technology design rules from the SKY130 PDK, such as:
+
+     minimum metal width
+     minimum metal spacing
+     via enclosure rules
+     metal area rules
+     routing track rules
+     off-grid restrictions
+     short-circuit prevention
+
+This stage is handled by TritonRoute inside the OpenLane/OpenROAD flow.
+
+TritonRoute creates the final legal routing for the design. It connects cell pins while avoiding shorts, spacing violations, and other physical design rule violations.
+
+Metal Layers and Vias
+
+In an ASIC, connections are not made using a single layer of wire. The design uses multiple metal layers stacked above the transistor and standard-cell layers.
+
+A wire may start on one metal layer, move vertically through a via, continue on another metal layer, and then connect to a different cell.
+
+A simplified example is:
+
+     Metal 1 ───── Via ───── Metal 2 ───── Via ───── Metal 3
+
+A via is a small vertical connection between two metal layers.
+
+Metal layers are used because a complex design has many signals crossing each other. Multiple routing layers allow the router to connect many nets without creating shorts.
+
+In this project, the routing report showed:
+
+     Wire length = 45024
+     Vias        = 10347
+
+The wire length indicates the total routed interconnect length reported by the tool. The via count indicates how many layer-to-layer metal connections were used during routing.
+
+Routing Violations
+
+During routing, the tool must avoid physical violations. Some important routing violations are:
+
+1. Short Violations
+
+A short violation occurs when two nets that should be electrically separate accidentally touch each other.
+
+This is a serious error because it changes the functionality of the circuit.
+
+For example, if two unrelated signals are shorted, the chip may behave incorrectly or fail completely.
+
+In this project:
+
+     Short violations = 0
+
+This means no unintended electrical shorts were reported.
+
+Metal Spacing Violations
+
+A metal spacing violation occurs when two metal wires are placed too close to each other.
+
+Manufacturing rules require a minimum spacing between wires. If wires are too close, they may short during fabrication or suffer from reliability issues.
+
+In this project:
+
+     Metal spacing violations = 0
+
+This means the routed wires satisfied the checked spacing rules.
+
+Off-Grid Violations
+
+Routing tracks are usually defined on a legal manufacturing grid. An off-grid violation occurs when a wire or via is placed outside the allowed routing grid.
+
+This can make the layout difficult or invalid to manufacture.
+
+In this project:
+
+     Off-grid violations = 0
+
+This means the routed shapes were aligned to valid routing locations.
+
+TritonRoute Violations
+
+TritonRoute violations refer to routing violations reported by the detailed router.
+
+A clean TritonRoute result means the detailed router completed successfully without reported routing errors.
+
+In this project:
+
+     TritonRoute violations = 0
+
+This indicates that detailed routing completed cleanly.
+
+Routing has a major impact on timing, power, area, and physical correctness.
+
+Long wires increase parasitic resistance and capacitance. This can increase signal delay and switching power. Routing congestion can force signals to take detours, which can further increase wire length and delay.
+
+Poor routing can cause:
+
+     timing violations
+     short circuits
+     metal spacing violations
+     antenna violations
+     higher parasitic delay
+     higher dynamic power
+
+
+
+
 CURRENT LIMITATIONS :
 
 The following has not been taken care of in the current implementation : 
