@@ -1483,6 +1483,185 @@ Poor routing can cause:
      higher parasitic delay
      higher dynamic power
 
+Final Routing Metrics : 
+
+<img width="490" height="255" alt="image" src="https://github.com/user-attachments/assets/0187eac6-fe06-4c4d-a3ef-516b14645be2" />
+
+6.Static Timing Analysis
+
+Static Timing Analysis, usually called STA, is the stage where the design is checked to confirm whether it can operate correctly at the target clock period.
+
+After routing, the physical design contains actual standard-cell locations, routed wires, vias, and the inserted clock tree. At this point, the design is no longer just a logical netlist. It has physical interconnects, and those interconnects introduce real delay due to wire resistance and capacitance.
+
+STA analyzes the timing of the routed design without applying simulation input vectors. Instead of running test cases, it mathematically checks timing paths across the circuit using the gate delays, wire delays, clock delays, and timing constraints.
+
+The main goal of STA is to answer this question:
+
+Can the design operate correctly at the target clock period?
+
+For this project, the target clock period was:
+     
+     20 ns
+
+This corresponds to a target frequency of:
+
+     50 MHz
+
+Tool Used inside OpenLane
+
+Static Timing Analysis is mainly performed using:
+     
+     OpenSTA
+
+inside the OpenLane flow.
+
+OpenSTA analyzes the gate-level netlist along with timing models from the SKY130 standard-cell library. After routing, it also considers extracted parasitic information from the physical interconnects.
+
+The STA stage uses:
+
+     gate-level netlist
+     clock constraints
+     SKY130 Liberty timing files
+     routed physical design
+     extracted parasitics
+     clock tree information
+
+The Liberty files from the sky130_fd_sc_hd library contain timing information for every standard cell. This includes cell delay, setup time, hold time, transition behavior, and output load characteristics.
+
+Significance of STA
+
+Timing must be checked after routing because routing adds wire delay.
+
+Before routing, timing estimates are less accurate because the exact metal wire lengths are not fully known. After routing, the tool knows the actual physical paths of the wires and the number of vias used. This allows more accurate timing analysis.
+
+Routing can affect timing because:
+
+longer wires increase delay
+wires add parasitic resistance and capacitance
+vias add extra resistance and delay
+clock tree insertion changes clock arrival times
+routing detours can increase path delay
+
+Therefore, even if a design looks fine after synthesis or placement, it still needs post-routing STA to confirm that the final physical implementation meets timing.
+
+In a synchronous pipelined design, most important timing paths are register-to-register paths.
+
+A typical timing path looks like:
+
+launch register → combinational logic → capture register
+
+The launch register sends data on one clock edge. The data then passes through combinational logic and must reach the capture register before the next relevant clock edge.
+
+For this floating-point adder, examples of register-to-register paths may exist between pipeline stages, such as:
+
+Because the design is pipelined, the floating-point addition operation is divided across multiple clock cycles. This reduces the amount of combinational logic in each stage and helps the design meet timing.
+
+Setup Timing
+
+Setup timing checks whether data arrives at the capture register early enough before the next active clock edge.
+
+A setup check asks:
+
+Does the data reach the destination register before the next clock edge?
+
+If the data arrives too late, the capture register may not capture the correct value. This is called a setup violation.
+
+Setup timing depends on:
+
+     clock period
+     launch clock delay
+     capture clock delay
+     combinational logic delay
+     wire delay
+     setup time of the capture flip-flop
+     clock uncertainty
+
+A positive setup slack means the data arrives in time.
+
+A negative setup slack means the design fails setup timing.
+
+In this project, the worst setup slack was:
+
+     Worst setup slack = 4.74 ns
+
+This means that even on the worst setup path, the data arrived with 4.74 ns of margin before the required time. Therefore, the design passed setup timing at the 20 ns clock period.
+
+Hold Timing
+
+Hold timing checks whether data remains stable long enough after the active clock edge.
+
+A hold check asks:
+
+Does the data stay stable long enough after the clock edge?
+
+If data changes too quickly after the clock edge, the capture register may accidentally capture the new value instead of the intended old value. This is called a hold violation.
+
+Hold timing is different from setup timing because hold timing is not fixed by simply increasing the clock period. Hold violations usually need physical fixes such as delay insertion, buffer insertion, or clock/data path adjustment.
+
+A positive hold slack means the data remains stable long enough.
+
+A negative hold slack means the design fails hold timing.
+
+In this project, the worst hold slack was:
+     
+     Worst hold slack = 0.14 ns
+
+This means that the design had a small but positive hold margin, so there were no hold violations.
+
+WNS and TNS
+
+Two important STA metrics are WNS and TNS.
+
+WNS: Worst Negative Slack
+
+It reports the worst slack among all timing paths. If WNS is negative, at least one timing path has failed.
+
+In this project:
+
+     WNS = 0.00
+
+This indicates that there were no negative-slack timing paths reported.
+
+TNS: Total Negative Slack
+
+TNS stands for Total Negative Slack.
+
+It is the sum of all negative slack values across failing paths. If many paths are failing, TNS becomes more negative.
+
+In this project:
+
+     TNS = 0.00
+
+This means that the design had no accumulated timing violations.
+
+Together, WNS = 0.00 and TNS = 0.00 indicate clean timing signoff.
+
+Critical Path
+
+The critical path is the slowest timing path in the design. It limits the maximum clock frequency that the design can safely achieve.
+
+In this project, the reported critical path was:
+
+     Critical path = 5.47 ns
+
+This means the longest data path delay reported in the design was around 5.47 ns.
+
+Since the target clock period was 20 ns, the critical path was comfortably below the clock period. This helped the design achieve positive setup slack.
+
+STA Metrics :
+
+<img width="412" height="542" alt="image" src="https://github.com/user-attachments/assets/6df4a98d-165d-4f32-bf66-8e17f7f31096" />
+
+Multiple STA summary reports were generated because OpenLane analyzes the routed design under different extracted RC conditions such as minimum, nominal, and maximum parasitic cases. These reports model how interconnect resistance and capacitance can affect timing after routing.
+
+The maximum RC case is usually more critical for setup timing because larger parasitics increase data path delay. The minimum RC case is usually more critical for hold timing because smaller parasitics allow data to propagate faster.
+
+Across all STA reports, `WNS = 0.00` and `TNS = 0.00`, indicating that there were no negative-slack timing paths. The smallest setup slack was `4.74 ns`, and the smallest hold slack was `0.14 ns`. Since both values are positive, the design passed timing at the target `20 ns` clock period.
+
+WNS  = 0.00
+TNS  = 0.00
+Worst Setup Slack = 4.74 ns
+Worst Hold Slack  = 0.14 ns
 
 
 
