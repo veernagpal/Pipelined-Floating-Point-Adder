@@ -463,17 +463,17 @@ The ASIC flow is not performed by a single tool. Each stage requires a different
 
 In this project, OpenLane automated these stages using tools such as Yosys, ABC, OpenROAD, OpenSTA, Magic, Netgen, TritonRoute, and KLayout, along with technology files from the SKY130 PDK.
 
-Tool / Component	Role in the ASIC Flow
-OpenLane	Controls the full RTL-to-GDSII flow and passes design data between tools
-Yosys	Converts Verilog RTL into a gate-level netlist
-ABC	Optimizes logic and maps it to SKY130 standard cells
-OpenROAD	Performs physical design stages such as floorplanning, placement, CTS, routing, and optimization
-OpenSTA	Performs static timing analysis for setup and hold timing
-TritonRoute	Performs detailed routing using physical metal layers
-Magic	Performs DRC checks, layout extraction, and GDS-related verification
-Netgen	Performs LVS comparison between layout-extracted netlist and reference netlist
-KLayout	Used to visually inspect the final GDSII layout
-SKY130 PDK	Provides standard cells, timing models, layout rules, routing rules, DRC/LVS rules, and antenna rules
+     Tool / Component	Role in the ASIC Flow
+     OpenLane	Controls the full RTL-to-GDSII flow and passes design data between tools
+     Yosys	Converts Verilog RTL into a gate-level netlist
+     ABC	Optimizes logic and maps it to SKY130 standard cells
+     OpenROAD	Performs physical design stages such as floorplanning, placement, CTS, routing, and optimization
+     OpenSTA	Performs static timing analysis for setup and hold timing
+     TritonRoute	Performs detailed routing using physical metal layers
+     Magic	Performs DRC checks, layout extraction, and GDS-related verification
+     Netgen	Performs LVS comparison between layout-extracted netlist and reference netlist
+     KLayout	Used to visually inspect the final GDSII layout
+     SKY130 PDK	Provides standard cells, timing models, layout rules, routing rules, DRC/LVS rules, and antenna rules
 
 CURRENT LIMITATIONS :
 
