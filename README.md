@@ -463,17 +463,808 @@ The ASIC flow is not performed by a single tool. Each stage requires a different
 
 In this project, OpenLane automated these stages using tools such as Yosys, ABC, OpenROAD, OpenSTA, Magic, Netgen, TritonRoute, and KLayout, along with technology files from the SKY130 PDK.
 
-     Tool / Component	Role in the ASIC Flow
-     OpenLane	Controls the full RTL-to-GDSII flow and passes design data between tools
-     Yosys	Converts Verilog RTL into a gate-level netlist
-     ABC	Optimizes logic and maps it to SKY130 standard cells
-     OpenROAD	Performs physical design stages such as floorplanning, placement, CTS, routing, and optimization
-     OpenSTA	Performs static timing analysis for setup and hold timing
-     TritonRoute	Performs detailed routing using physical metal layers
-     Magic	Performs DRC checks, layout extraction, and GDS-related verification
-     Netgen	Performs LVS comparison between layout-extracted netlist and reference netlist
-     KLayout	Used to visually inspect the final GDSII layout
-     SKY130 PDK	Provides standard cells, timing models, layout rules, routing rules, DRC/LVS rules, and antenna rules
+     Tool / Component	                                         Role in the ASIC Flow
+     OpenLane	                        Controls the full RTL-to-GDSII flow and passes design data between tools
+     Yosys	                                      Converts Verilog RTL into a gate-level netlist
+     ABC	                                        Optimizes logic and maps it to SKY130 standard cells
+     OpenROAD	                  Performs physical design stages such as floorplanning, placement, CTS, routing, and optimization
+     OpenSTA	                                 Performs static timing analysis for setup and hold timing
+     TritonRoute	                              Performs detailed routing using physical metal layers
+     Magic	                             Performs DRC checks, layout extraction, and GDS-related verification
+     Netgen	                        Performs LVS comparison between layout-extracted netlist and reference netlist
+     KLayout	                                           Used to visually inspect the final GDSII layout
+     SKY130 PDK	                Provides standard cells, timing models, layout rules, routing rules, DRC/LVS rules, and antenna rules
+
+OpenLane
+
+OpenLane is the main automation framework used in this project. It does not perform every ASIC task by itself. Instead, it coordinates several open-source EDA tools and runs them in the correct order.
+
+OpenLane reads the design configuration file, RTL files, timing constraints, PDK information, and standard-cell library files. It then launches the required tools for synthesis, floorplanning, placement, clock tree synthesis, routing, timing analysis, and physical verification.
+
+In this project, OpenLane was responsible for converting the floating-point adder from:
+
+Synthesizable Verilog RTL
+
+to:
+
+Final GDSII layout
+
+It also generated reports for timing, area, routing, DRC, LVS, antenna checks, and final design metrics.
+
+Yosys
+
+Yosys is the synthesis tool used by OpenLane.
+
+The input to Yosys is the Verilog RTL. At this point, the design is written in a high-level hardware description. For example, the RTL may contain arithmetic operations, comparisons, multiplexers, registers, and conditional statements.
+
+Yosys converts this RTL into a gate-level representation. This means that operations written in Verilog are transformed into logic structures made from gates, muxes, flip-flops, and other cells.
+
+For example, a Verilog statement such as:
+
+assign y = sel ? a : b;
+
+can be synthesized into a multiplexer cell. Similarly, adders, shifters, comparators, and control logic in the floating-point adder are broken down into standard-cell logic.
+
+In this project, Yosys synthesized the 4-stage pipelined floating-point adder and produced a gate-level netlist for the top module fp_adder_top.
+
+ABC
+
+ABC is used during synthesis for logic optimization and technology mapping.
+
+After Yosys converts RTL into a logic network, ABC optimizes that logic. It tries to reduce unnecessary gates, improve timing, reduce area, and map the logic efficiently to the available cells in the standard-cell library.
+
+Technology mapping is important because generic gates are not enough for ASIC implementation. The logic must be mapped to real cells available in the selected library. In this project, ABC helped map the design to the SKY130 sky130_fd_sc_hd standard-cell library.
+
+So, ABC helps answer this question:
+
+What combination of real SKY130 cells should be used to implement this RTL logic efficiently?
+SKY130 PDK
+
+The SKY130 PDK is the technology foundation of the entire ASIC flow.
+
+PDK stands for Process Design Kit. It contains the process-specific information needed to manufacture and verify a chip in SkyWater’s 130 nm CMOS technology.
+
+The PDK provides:
+
+standard-cell libraries
+timing models
+power models
+LEF physical abstracts
+metal layer information
+via rules
+design rule checks
+LVS rules
+antenna rules
+technology files
+
+In this project, the standard-cell library used was:
+
+sky130_fd_sc_hd
+
+This is the SkyWater 130 nm foundry-provided high-density standard-cell library. It contains pre-designed cells such as inverters, NAND gates, NOR gates, muxes, buffers, flip-flops, and other logic cells.
+
+Without the SKY130 PDK, OpenLane would not know the size of each cell, the delay of each cell, the power of each cell, the routing layers available, or the physical design rules that the final layout must obey.
+
+OpenROAD
+
+OpenROAD is the main physical design engine used inside OpenLane.
+
+After synthesis, the design exists as a gate-level netlist. This netlist tells which cells are connected, but it does not yet say where the cells are placed on silicon or how they are physically connected.
+
+OpenROAD performs many of the backend physical design steps, including:
+
+floorplanning
+power planning
+placement
+placement optimization
+clock tree synthesis
+routing support
+timing-driven optimization
+design repair
+
+During floorplanning, OpenROAD defines the die area, core area, placement rows, and initial physical structure of the design.
+
+During placement, OpenROAD assigns locations to the synthesized standard cells inside the core area.
+
+During clock tree synthesis, OpenROAD inserts clock buffers and builds a clock distribution network so that the clock reaches all pipeline registers properly.
+
+During optimization, OpenROAD may insert buffers, resize cells, or make changes to improve timing and routability.
+
+In this project, OpenROAD handled the main transformation from a synthesized netlist into a physically placed and routed design.
+
+OpenSTA
+
+OpenSTA is the static timing analysis tool used in the flow.
+
+Static Timing Analysis checks whether the design can run at the target clock frequency without requiring simulation vectors. It analyzes timing paths between registers, inputs, and outputs using cell delays, wire delays, clock delays, and timing constraints.
+
+OpenSTA checks two major timing conditions:
+
+setup timing
+hold timing
+
+Setup timing checks whether data reaches the destination flip-flop before the next active clock edge. Hold timing checks whether data remains stable long enough after the current clock edge.
+
+In this project, OpenSTA was used to verify that the pipelined floating-point adder met the 20 ns clock period constraint. The final timing results showed positive setup and hold slack, meaning the design passed timing signoff.
+
+TritonRoute
+
+TritonRoute is the detailed routing tool used in the OpenLane/OpenROAD flow.
+
+After placement and clock tree synthesis, the standard cells have fixed physical positions. However, their pins still need to be connected using actual metal wires. Routing creates these connections.
+
+Routing usually happens in two stages:
+
+global routing
+detailed routing
+
+Global routing decides the approximate path that each net should take. Detailed routing creates the exact metal shapes, vias, and layer transitions needed to connect the pins while following the design rules.
+
+TritonRoute performs detailed routing. It uses the metal layers and via rules defined by the SKY130 PDK. It must make sure that wires do not short, do not violate spacing rules, and do not create illegal geometries.
+
+Magic
+
+Magic is used for physical verification and layout-related checks.
+
+In the ASIC flow, a design can pass synthesis and timing but still fail manufacturing rules. Magic checks the actual physical layout against the design rules from the SKY130 PDK.
+
+Magic is used for:
+
+DRC checking
+layout extraction
+GDS-related checks
+physical verification
+
+DRC stands for Design Rule Check. It verifies that the layout follows the manufacturing rules of the process, such as minimum metal width, minimum spacing, via enclosure, and layer overlap rules.
+
+In this project, Magic was used during signoff to check the final layout. The final DRC report showed zero violations, which means the layout satisfied the checked SKY130 design rules.
+
+Netgen
+
+Netgen is used for LVS verification.
+
+LVS stands for Layout Versus Schematic. It checks whether the physical layout actually matches the intended circuit.
+
+The layout is first extracted into a netlist. Then Netgen compares this layout-extracted netlist against the reference gate-level netlist generated from synthesis.
+
+Netgen checks for issues such as:
+
+missing connections
+extra connections
+wrong pins
+shorted nets
+open nets
+device mismatches
+property mismatches
+
+In this project, Netgen reported zero LVS errors. This means the final physical layout electrically matched the intended floating-point adder netlist.
+
+KLayout
+
+KLayout was used to view and inspect the final GDSII file.
+
+GDSII is the final layout file format used to represent the physical geometry of the chip. It contains the shapes for the different layers of the design, such as metal layers, vias, contacts, and cell layouts.
+
+KLayout does not change the logic of the design in this project. It was used as a layout viewer to open the final fp_adder_top.gds file and visually confirm that the GDS layout was generated successfully.
+
+The final GDS layout viewed in KLayout represents the completed physical implementation of the 4-stage pipelined floating-point adder.
+
+
+OpenLane Configuration
+
+After defining the toolchain, the next step was to set up the floating-point adder as an OpenLane-compatible design. OpenLane expects each design to be placed inside a dedicated design directory, containing the RTL source files and a configuration file that describes how the flow should be run.
+
+In this project, the design was organized as:
+
+     designs/
+     └── fp_adder_pipelined/
+         ├── config.tcl
+         └── src/
+             └── 4_Stage_Pipelined_FP_adder_SYNTHESIZABLE_RTL.v
+
+The src/ directory contains the synthesizable Verilog RTL of the 4-stage pipelined IEEE-754 single-precision floating-point adder. The config.tcl file contains all design-specific settings required by OpenLane, such as the top module name, clock port, clock period, synthesis strategy, placement density, floorplanning utilization, and antenna diode insertion settings.
+
+This setup is important because OpenLane is an automated flow. It needs clear information about the design before it can perform synthesis, floorplanning, placement, clock tree synthesis, routing, timing analysis, and physical verification.
+
+Top-Level Module
+
+The top-level module used for ASIC implementation was:
+
+     fp_adder_top
+
+This module acts as the main entry point of the design. OpenLane starts from this module and traces the complete design hierarchy below it. Since the floating-point adder contains multiple internal modules such as unpacking, exponent comparison, mantissa alignment, arithmetic, normalization, packing, and pipeline registers, specifying the correct top module is necessary for the flow to understand the complete design.
+
+In the OpenLane configuration file, the top-level module was specified using:
+
+     set ::env(DESIGN_NAME) fp_adder_top
+
+This tells OpenLane that fp_adder_top is the root module of the design. If this name does not match the actual top module name in the Verilog RTL, OpenLane synthesis will fail because it will not be able to identify the main design hierarchy.
+
+RTL Source File Inclusion
+
+The synthesizable Verilog RTL was placed inside the src/ directory of the OpenLane design folder.
+
+The RTL files were included using:
+
+     set ::env(VERILOG_FILES) [glob $::env(DESIGN_DIR)/src/*.v]
+
+This command tells OpenLane to include all Verilog files present inside the src/ directory. The [glob ...] expression automatically collects all files ending with .v.
+
+In this project, the RTL file used for ASIC implementation was:
+
+4_Stage_Pipelined_FP_adder_SYNTHESIZABLE_RTL.v
+
+This file contains the synthesizable version of the 4-stage pipelined floating-point adder. Only synthesizable Verilog should be placed in the OpenLane src/ folder. Testbenches, Python scripts, simulation-only code, $display statements, delays, and non-synthesizable constructs should not be included in the ASIC synthesis source files.
+
+Clock Port and Clock Period
+
+The pipelined floating-point adder uses a clock signal because pipeline registers are placed between different computation stages. These registers divide the floating-point addition operation into multiple stages and allow the design to operate synchronously.
+
+The clock port was specified using:
+
+     set ::env(CLOCK_PORT) clk
+
+This tells OpenLane that the signal named clk is the main clock of the design.
+
+The target clock period was specified using:
+     
+     set ::env(CLOCK_PERIOD) 20
+
+The clock period is given in nanoseconds. A clock period of 20 ns corresponds to a target frequency of:
+
+Frequency = 1 / Clock Period
+Frequency = 1 / 20 ns
+Frequency = 50 MHz
+
+This timing constraint is used throughout the flow. During synthesis, the tool tries to build logic that can meet this clock period. During placement, CTS, routing, and timing analysis, the flow checks whether data can travel between registers within the given clock period.
+
+For this project, a 20 ns clock period was selected as a safe baseline constraint for achieving clean timing closure in the SKY130 process.
+
+Floorplanning Core Utilization
+
+The floorplanning utilization was set using:
+     
+     set ::env(FP_CORE_UTIL) 35
+
+FP_CORE_UTIL controls how much of the core area is initially targeted for standard-cell usage during floorplanning. A value of 35 means that the design is planned with approximately 35% core utilization.
+
+This does not mean the entire chip is only 35% useful. Instead, it means the initial floorplan leaves enough whitespace for later physical design steps.
+
+Whitespace is important because the design still needs space for:
+
+routing wires
+clock buffers
+timing repair buffers
+antenna diodes
+decap cells
+welltap cells
+fill cells
+power routing
+
+If the utilization is too high, the design becomes tightly packed. This can cause routing congestion, timing issues, DRC violations, or antenna violations. A more relaxed utilization gives OpenLane more freedom during placement and routing.
+
+For this project, 35% utilization was used to keep the layout easier to place and route cleanly.
+
+Placement Density
+
+The placement density was controlled using:
+     
+     set ::env(PL_TARGET_DENSITY) 0.45
+
+PL_TARGET_DENSITY controls how densely the standard cells are placed during the placement stage. A value of 0.45 means that the placer targets approximately 45% density in the placement region.
+
+This value was chosen to avoid overpacking the design. Since a floating-point adder contains a significant amount of datapath logic, including muxes, shifters, adders, comparison logic, and normalization logic, routing resources are important. If the cells are placed too close together, routing wires may not have enough space, which can lead to congestion and routing violations.
+
+A placement density of 0.45 provides a balance between area and routability. It keeps the design compact enough while still leaving enough whitespace for routing and physical-only cell insertion.
+
+Synthesis Strategy
+
+The synthesis strategy was set using:
+
+     set ::env(SYNTH_STRATEGY) "AREA 0"
+
+This setting tells the synthesis stage to use an area-oriented optimization strategy.
+
+During synthesis, the RTL is converted into a gate-level netlist using standard cells from the SKY130 library. The synthesis tool can optimize the design for different goals, such as area, timing, or power. In this project, the AREA 0 strategy was used because the selected clock period of 20 ns was relaxed enough for the design to meet timing while keeping the implementation reasonably compact.
+
+This means the synthesis tool tries to reduce unnecessary logic and map the RTL into an efficient set of SKY130 standard cells.
+
+Antenna Diode Insertion
+
+Antenna diode insertion was configured using:
+
+     set ::env(DIODE_INSERTION_STRATEGY) 3
+     set ::env(RUN_HEURISTIC_DIODE_INSERTION) 1
+
+Antenna violations can occur during chip fabrication when long metal wires collect charge and connect to sensitive MOS gate terminals. If this accumulated charge becomes too large, it can damage the thin gate oxide of transistors. This is called the antenna effect.
+
+To prevent this, diode cells can be inserted into the design. These diodes provide a safe discharge path for the accumulated charge during fabrication.
+
+In this project, an earlier OpenLane run showed antenna violations. To fix this, heuristic diode insertion was enabled using:
+
+     set ::env(RUN_HEURISTIC_DIODE_INSERTION) 1
+
+This allowed OpenLane to insert additional antenna protection diodes. After enabling this setting, the final design achieved clean antenna signoff with zero pin antenna violations and zero net antenna violations.
+
+The diode insertion settings do not change the logical functionality of the floating-point adder. They are physical design fixes added to make the layout safe and manufacturable.
+
+Final OpenLane Configuration
+
+The final config.tcl used for the clean OpenLane run was:
+
+     set ::env(DESIGN_NAME) fp_adder_top
+     
+     set ::env(VERILOG_FILES) [glob $::env(DESIGN_DIR)/src/*.v]
+     
+     set ::env(CLOCK_PORT) clk
+     set ::env(CLOCK_PERIOD) 20
+     
+     set ::env(FP_CORE_UTIL) 35
+     set ::env(PL_TARGET_DENSITY) 0.45
+     
+     set ::env(SYNTH_STRATEGY) "AREA 0"
+     
+     set ::env(DIODE_INSERTION_STRATEGY) 3
+     set ::env(RUN_HEURISTIC_DIODE_INSERTION) 1
+
+Configuration Parameter	             Value	                           Purpose
+DESIGN_NAME	                    fp_adder_top	      Specifies the top-level Verilog module
+VERILOG_FILES	                       src/*.v	          Includes all RTL source files
+CLOCK_PORT	                        clk	               Defines the main clock signal
+CLOCK_PERIOD	                       20 ns	             Sets the target timing constraint
+FP_CORE_UTIL	                        35	             Sets relaxed floorplan utilization
+PL_TARGET_DENSITY	                  0.45                   Controls placement density
+SYNTH_STRATEGY	                      AREA 0	         Uses area-oriented synthesis optimization
+DIODE_INSERTION_STRATEGY	              3	          Enables antenna diode insertion strategy
+RUN_HEURISTIC_DIODE_INSERTION	         1	      Adds extra diode insertion to fix antenna violations
+
+The 20 ns clock period gave the design a reasonable timing target. The 35% core utilization and 0.45 placement density gave the backend tools enough whitespace for routing and optimization. The area-oriented synthesis strategy helped keep the synthesized design compact. Finally, heuristic diode insertion was enabled to resolve antenna violations and achieve clean physical signoff.
+
+Stages of the ASIC flow
+
+1. Synthesis : converts this high-level RTL into a gate level netlist made up of actual standard cells from the selected PDK such as:
+
+          AND gates
+          OR gates
+          NAND gates
+          NOR gates
+          XOR gates
+          XNOR gates
+          MUXes
+          buffers
+          inverters
+          flip-flops
+          complex logic cells
+
+For example, an RTL statement such as:
+     
+     assign y = sel ? a : b;
+
+can be mapped to a multiplexer standard cell.
+
+Tool Used: Yosys and ABC
+
+Yosys reads the Verilog RTL, elaborates the design hierarchy, checks the modules, and converts the RTL into a generic logic representation. It then performs logic synthesis and prepares the design for mapping into a technology-specific cell library.
+
+ABC is used after Yosys for logic optimization and technology mapping. It optimizes the logic network and maps it to actual cells available in the SKY130 sky130_fd_sc_hd standard-cell library.
+
+So the synthesis flow is:
+
+     Verilog RTL
+        ↓
+     Yosys elaboration and synthesis
+        ↓
+     Generic gate-level logic
+        ↓
+     ABC logic optimization
+        ↓
+     Mapping to SKY130 standard cells
+        ↓
+     Gate-level Verilog netlist
+
+The final synthesized cell count was:
+     
+     Synthesized cell count = 1250
+
+This means that the functional logic of the floating-point adder was implemented using 1250 synthesized standard cells before backend physical-only cells were inserted.
+
+The main output of synthesis is the gate-level Verilog netlist.
+
+For this project, the synthesis output was generated as:
+     
+     results/synthesis/fp_adder_top.v
+
+This file represents the synthesized version of the RTL using SKY130 standard cells.
+
+<img width="1052" height="436" alt="image" src="https://github.com/user-attachments/assets/971eb624-0329-4613-985c-691c89bd9fa7" />
+
+2. Floor-Planning :
+
+Floorplanning is the first major physical design step in the ASIC flow. After synthesis, the design exists as a gate-level netlist made up of SKY130 standard cells, but those cells do not yet have physical locations on silicon. Floorplanning creates the initial physical structure of the chip block so that placement, routing, clock tree synthesis, and signoff can be performed later.
+
+The main purpose of floorplanning is to define:
+
+     die area
+     core area
+     standard-cell rows
+     input/output pin locations
+     power and ground structure
+
+The die is the complete physical boundary of the design. The core is the inner region where the standard cells are placed. The space between the core and die boundary is generally used for pin access, routing resources, and physical margins.
+
+Floorplanning is mainly handled by:
+
+OpenROAD
+
+inside the OpenLane flow.
+
+OpenROAD uses the gate-level netlist generated after synthesis along with the SKY130 technology files and standard-cell physical abstracts. These physical abstracts come from LEF files, which describe the height, width, pin locations, and routing blockages of each standard cell.
+
+At this stage, OpenROAD does not yet route all signal wires. Instead, it prepares the physical canvas where cells and wires will later be placed.
+
+During floorplanning, OpenLane/OpenROAD performs several important actions.
+
+First, it determines the size of the die and core. The die defines the outer boundary of the design, while the core defines the region where the standard cells are placed. The size is influenced by the number of synthesized cells, target utilization, placement density, routing requirements, and physical-only cell requirements.
+
+Next, standard-cell rows are created inside the core. These rows are important because standard cells are placed in aligned rows during placement. Standard cells from the sky130_fd_sc_hd library have a fixed cell height, so rows make it possible to place cells cleanly and connect their power rails properly.
+
+Floorplanning also prepares power and ground distribution. All standard cells require VDD and GND connections. Therefore, the flow creates power rails and prepares the power delivery structure so that the placed cells can receive supply connections.
+
+Input and output pins are also assigned positions around the design boundary. These pins are used to connect the block to the outside environment.
+
+The floorplanning utilization was controlled using the following OpenLane setting:
+
+set ::env(FP_CORE_UTIL) 35
+
+FP_CORE_UTIL controls the approximate percentage of the core area that should be occupied by standard cells during the initial floorplan.
+
+In this project, the value was set to:
+
+35%
+
+This means the design was not packed too tightly. A relaxed utilization was used intentionally to leave enough whitespace for later backend stages.
+
+Whitespace is important because the design still needs room for:
+
+     signal routing
+     clock tree buffers
+     timing repair buffers
+     antenna diode cells
+     decap cells (transistors switch so fast they need an instant flood of current. Since the main power supply is too far away to react in time, decap cells act as tiny, local energy reservoirs that dump their stored charge instantly to keep the voltage from dropping.)
+     welltap cells (prevent Latch Up in CMOS)
+     fill cells ()
+     power routing
+
+If the core utilization is too high, cells become packed very close together. This can cause routing congestion, timing issues, DRC violations, and difficulty inserting physical-only cells. If the utilization is too low, the design becomes larger than necessary. Therefore, floorplanning is a tradeoff between area and routability.
+
+Floorplanning has a major effect on the rest of the ASIC flow. A good floorplan makes placement and routing easier, improves timing closure, and reduces the chance of DRC or routing violations.
+
+If the floorplan is too small or too dense, the router may not have enough space to connect the cells. This can lead to routing failures or design rule violations. If the floorplan is too large, the design wastes area and may have longer wires, which can increase delay and power.
+
+For this project, the floorplan settings provided enough whitespace for successful placement, routing, diode insertion, and final signoff. This helped the design pass routing, DRC, LVS, antenna, and timing checks in the final OpenLane run.
+
+Floor-Planning Metrics
+
+<img width="601" height="156" alt="image" src="https://github.com/user-attachments/assets/6f7061a0-f267-4531-b754-d8028ba8561a" />
+
+3. Placement :
+
+Placement is the stage where the synthesized standard cells are assigned physical locations inside the core area created during floorplanning.
+
+After synthesis, the design exists as a gate-level netlist. This netlist tells which standard cells are used and how they are connected, but it does not define where those cells should physically sit on the silicon layout. Floorplanning creates the die, core, rows, and power structure, but the cells are still not placed in their final positions.
+
+Placement converts the synthesized netlist into a physical arrangement of cells inside the core.
+
+In simple terms:
+
+After synthesis:
+The design knows what cells are needed.
+
+After floorplanning:
+The design knows the physical boundary and core area.
+
+After placement:
+The design knows where each standard cell is located.
+
+During placement, the tool tries to arrange cells in a way that reduces wire length, avoids congestion, improves timing, and keeps the design legal with respect to the standard-cell rows.
+
+Placement is mainly handled by: OpenROAD inside the OpenLane flow.
+
+OpenROAD performs global placement, placement optimization, and detailed placement. OpenDP is used during detailed placement/legalization to ensure that cells are placed legally in standard-cell rows without overlap.
+
+Placement is not just a single step where cells are randomly put inside the core. It is a multi-stage process where the tool gradually moves from an approximate placement to a final legal placement.
+
+The main aim of placement is to arrange the synthesized standard cells in such a way that the design becomes easier to route, timing paths become shorter, and the final layout remains physically legal.
+
+Placement is usually performed in three major sub-stages:
+
+1. Global placement
+2. Placement optimization
+3. Detailed placement / legalization
+1. Global Placement
+
+Global placement is the first major placement step. At this stage, the tool assigns approximate locations to all the standard cells inside the core area.
+
+The placement is not yet final or perfectly legal. The main goal is to get a good overall arrangement of the cells.
+
+The tool tries to place cells based on their connectivity. Cells that communicate with each other frequently or are connected by the same nets are placed closer together. This helps reduce the total wire length needed later during routing.
+
+For example, if the output of one logic gate drives another gate, placing those two cells close together reduces the length of the wire between them. Shorter wires generally help reduce:
+
+     routing congestion
+     wire delay
+     switching power
+     parasitic capacitance
+     timing problems
+
+2. Placement Optimization
+
+After global placement, the tool analyzes the initial cell arrangement and improves it.
+
+This stage is called placement optimization. The tool checks whether the current placement is good for timing, congestion, and routability. If needed, it modifies the placement or inserts additional cells to improve the design.
+
+Placement optimization may involve:
+
+     1. Moving Cells to Reduce Wire Length
+     
+     One of the main goals of placement optimization is to reduce the total wire length of the design.
+     
+     After synthesis, the netlist defines which cells are connected, but not where they are physically located. If two connected cells are placed far apart, the wire between them becomes long.
+     
+     Long wires can cause several problems:
+     
+     higher wire delay
+     larger parasitic capacitance
+     higher switching power
+     more routing resource usage
+     greater chance of congestion
+     
+     For example, if the output of one mux drives another logic block, placing those two cells far apart forces the router to create a long metal connection. This increases the delay of that signal and can make timing closure harder.
+     
+     To solve this, the placement optimizer moves connected cells closer together. By reducing the distance between connected cells, the tool reduces wire length, improves timing, lowers capacitance, and makes routing easier.
+     
+     In this floating-point adder, this is important because datapath blocks such as mantissa alignment, mantissa arithmetic, normalization, and packing are heavily connected. Keeping related cells close reduces unnecessary routing delay.
+     
+     2. Spreading Cells to Reduce Congestion
+     
+     Although placing connected cells close together is useful, placing too many cells in one small region can create congestion.
+     
+     Congestion happens when many wires need to pass through the same physical area. Even if the logic is correct, the router may struggle to connect all nets because there are limited routing tracks available in each metal layer.
+     
+     Congestion can cause problems such as:
+     
+     routing difficulty
+     long routing detours
+     higher wire delay
+     DRC violations
+     routing failure
+     increased via usage
+     
+     For example, if too many muxes, adders, and shifter-related cells are placed very close together, many signals may need to enter and leave that small region. The router may then be forced to use longer detours or higher metal layers to complete the connections.
+     
+     To solve this, placement optimization spreads cells apart in congested regions. This creates more whitespace between cells and gives the router more space to pass wires through.
+     
+     This is why placement density matters. In this project, the placement density target was set to:
+     
+     set ::env(PL_TARGET_DENSITY) 0.45
+     
+     This helped avoid overpacking and made the design easier to route cleanly.
+     
+     3. Inserting Buffers on Long Nets
+     
+     A long net is a signal wire that travels a large distance across the chip. Long nets can become slow because the wire has resistance and capacitance. The driver cell at the start of the net must charge or discharge the entire wire capacitance.
+     
+     This can cause:
+     
+     large signal delay
+     slow transition time
+     timing violations
+     high dynamic power
+     poor signal integrity
+     
+     If a driver is too weak for a long wire, the signal transition becomes slow. Slow transitions can affect timing and may also increase short-circuit power in receiving gates.
+     
+     To solve this, the optimizer can insert buffers along long nets.
+     
+     Instead of one weak driver driving a long wire directly, the signal is split into shorter segments:
+     
+     Without buffer:
+     Driver ───────────────────────────── Receiver
+     
+     With buffers:
+     Driver ───── Buffer ───── Buffer ───── Receiver
+     
+     Each buffer regenerates the signal and drives the next shorter wire segment. This reduces transition time and improves timing.
+     
+     Buffer insertion is especially useful for signals that travel between different regions of the layout.
+     
+     4. Resizing Cells for Timing Improvement
+     
+     Standard-cell libraries usually contain multiple drive-strength versions of the same logic cell.
+     
+     For example, an inverter or buffer may exist in different strengths:
+     
+     small inverter
+     medium inverter
+     large inverter
+     
+     A small cell uses less area and power but drives signals more slowly. A larger cell uses more area and power but can drive larger loads faster.
+     
+     If a cell is on a slow timing path, the optimizer may replace it with a stronger version of the same cell. This is called cell resizing.
+     
+     The problem caused by weak cells is:
+     
+     larger gate delay
+     slow output transition
+     setup timing problems
+     poor drive strength for large loads
+     
+     The solution is:
+     
+     replace weak cell with stronger drive-strength cell
+     
+     However, resizing has tradeoffs. Stronger cells improve delay but may increase:
+     
+     area
+     power
+     input capacitance
+     local congestion
+     
+     So the optimizer does not simply make every cell large. It selectively resizes cells only where timing improvement is needed.
+     
+     In a floating-point adder, resizing may be useful on timing-sensitive datapath logic such as mantissa arithmetic, normalization, or exponent/mantissa selection paths.
+     
+     5. Improving Critical Timing Paths
+     
+     A critical path is one of the slowest timing paths in the design. It is the path that limits the maximum operating frequency of the circuit.
+     
+     In a pipelined design, timing paths usually exist between two sets of registers:
+     
+     launch register → combinational logic → capture register
+     
+     If the combinational logic and routing delay between two registers is too large, the data may not reach the capture register before the next clock edge. This causes a setup timing violation.
+     
+     Critical paths can be caused by:
+     
+     too much combinational logic between registers
+     long wires
+     weak drive cells
+     high fanout nets
+     poor placement
+     large mux/shifter/arithmetic structures
+     
+     Placement optimization tries to improve these paths by physically moving cells closer together, resizing cells, inserting buffers, and reducing wire length.
+     
+     For this floating-point adder, possible timing-sensitive regions include:
+     
+     mantissa alignment path
+     mantissa arithmetic path
+     normalization path
+     rounding/packing path
+     mux-heavy exponent selection logic
+     
+     Because the design is pipelined, each stage has less combinational logic than a fully non-pipelined design. This helps timing closure. In the final run, the design achieved positive setup slack, showing that the timing paths met the 20 ns clock constraint.
+     
+     6. Reducing Excessive Fanout Problems
+     
+     Fanout refers to the number of loads driven by a signal.
+     
+     For example, if one signal drives 20 different cells, it has a fanout of 20.
+     
+     High fanout can cause problems because one driver has to charge the input capacitance of many receiving gates. This increases the load on the driver.
+     
+     High fanout can lead to:
+     
+     slow signal transition
+     large delay
+     setup timing problems
+     increased power
+     routing congestion
+     poor signal quality
+     
+     Common high-fanout signals include:
+     
+     control signals
+     enable signals
+     select lines
+     reset signals
+     wide mux select signals
+     clock-related control signals
+     
+     To solve high-fanout problems, the tool can insert buffers and create a small distribution tree.
+     
+     Instead of one cell driving many loads directly:
+     
+     One driver → many loads
+     
+     the tool creates buffered branches:
+     
+     Driver
+       ├── Buffer → group of loads
+       ├── Buffer → group of loads
+       └── Buffer → group of loads
+     
+     This reduces the load seen by the original driver and improves transition time and delay.
+     
+3. Detailed Placement / Legalization
+
+After global placement and optimization, the cells have reasonable approximate locations, but the placement may still not be physically legal.
+
+Detailed placement, also called legalization, converts the approximate placement into a legal standard-cell placement.
+
+Standard cells cannot be placed anywhere randomly. They must sit inside predefined standard-cell rows created during floorplanning. These rows are aligned so that the power rails of each cell connect properly to VDD and GND.
+
+During detailed placement, the tool snaps cells into valid row locations and makes sure the final placement satisfies physical constraints.
+
+This step ensures that:
+
+cells do not overlap
+cells are placed inside legal standard-cell rows
+cells are aligned correctly
+power rails line up properly
+cell orientations are valid
+placement sites are respected
+the design is ready for CTS and routing
+
+If two cells overlap after global placement, legalization separates them. If a cell is slightly off-row, detailed placement snaps it into the correct row. If cells are too close or not aligned properly, the tool adjusts their positions.
+
+The placement density target was set using:
+
+set ::env(PL_TARGET_DENSITY) 0.45
+
+This means the placer was guided to avoid packing the cells too tightly. Since the floating-point adder contains datapath-heavy logic with many interconnections, a moderate placement density helped leave enough whitespace for routing, timing optimization, clock tree buffers, diode cells, decap cells, welltap cells, and filler cells.
+
+The final OpenDP utilization reported by OpenLane was:
+
+OpenDP Utilization = 36.28%
+
+This indicates that after detailed placement, about 36.28% of the core placement area was occupied by cells. This value is close to the configured floorplan utilization target of 35%, showing that the design was placed in a relaxed and routable manner.
+
+4. Clock Tree Synthesis :
+
+Clock Tree Synthesis, usually called CTS, is the stage where the clock network of the design is physically built.
+
+Before CTS, the design has already gone through synthesis, floorplanning, and placement. At this point, the standard cells have been placed inside the core area, but the clock signal is still mostly treated as an ideal signal. In a real chip, the clock cannot reach every flip-flop instantly or automatically. It has to physically travel through metal wires and buffers.
+
+Since this project implements a 4-stage pipelined IEEE-754 single-precision floating-point adder, the design contains pipeline registers between different computation stages. These registers are controlled by the clock signal. For the pipeline to work correctly, all registers must receive a clean and properly distributed clock.
+
+The main purpose of CTS is to distribute the clock signal from the clock input port to all sequential elements in the design while controlling clock imperfections 
+
+Clock Tree Synthesis is mainly handled by OpenROAD inside the OpenLane flow. OpenROAD uses clock tree synthesis algorithms and clock buffer cells from the sky130_fd_sc_hd standard-cell library to build the clock distribution network.
+
+The CTS stage uses the placed design database, clock definition, clock period constraint, standard-cell timing models, and clock buffer cells from the SKY130 library.
+
+In this project, the clock port was defined in config.tcl as:
+
+     set ::env(CLOCK_PORT) clk
+
+The target clock period was defined as:
+     
+     set ::env(CLOCK_PERIOD) 20
+
+This means the design was implemented for a target clock period of 20 ns, which corresponds to a target frequency of 50 MHz
+
+Significance of CTS : 
+
+In a synchronous digital circuit, flip-flops capture data on active clock edges. A typical register-to-register timing path looks like this:
+
+launch register → combinational logic → capture register
+
+The launch register sends data on one clock edge, and the capture register captures that data on a later clock edge. For this to work correctly, the clock must reach both registers in a controlled and predictable way.
+
+Before CTS, the clock is treated as an ideal signal during earlier stages. However, after physical implementation, the clock must travel through actual wires and buffers. These wires and buffers introduce delay. If the clock reaches different registers at different times, timing problems can occur.
+
+The difference in clock arrival time between two sequential elements is called clock skew.
+
+Clock skew can cause:
+
+setup timing violations
+hold timing violations
+incorrect data capture
+reduced timing margin
+lower maximum operating frequency
+
+Therefore, CTS is required to convert the ideal clock into a real physical clock network that can drive all sequential elements reliably.
 
 CURRENT LIMITATIONS :
 
