@@ -1663,7 +1663,267 @@ TNS  = 0.00
 Worst Setup Slack = 4.74 ns
 Worst Hold Slack  = 0.14 ns
 
+7. Physical Verification and Signoff:
 
+After synthesis, floorplanning, placement, clock tree synthesis, routing, and timing analysis, the design must still be checked for physical correctness. A design can be logically correct and timing-clean, but it may still fail if the final layout violates manufacturing rules or does not electrically match the intended circuit.
+
+Physical verification is the stage where the final routed layout is checked against the rules of the target fabrication process. Since this project uses the SKY130 PDK, the final layout must satisfy SKY130 design rules and signoff requirements.
+
+The main physical verification checks performed in this project were:
+
+1. DRC - Design Rule Check(Whether the layout follows SKY130 manufacturing rules)
+2. LVS - Layout Versus Schematic(Whether the physical layout matches the intended netlist)
+3. Antenna Check(Whether long metal wires can damage transistor gates during fabrication)
+
+Design Rule Check
+
+Design Rule Check, or DRC, verifies whether the final physical layout follows the manufacturing rules of the selected process technology.
+
+Every semiconductor process has strict layout rules. These rules define how close metal wires can be, how wide wires must be, how vias should be placed, how much enclosure is required, and how different layers must interact.
+
+For the SKY130 process, these rules are provided by the SKY130 PDK.
+
+DRC checks rules such as:
+
+     minimum metal width
+     minimum metal spacing
+     minimum via enclosure
+     minimum area rules
+     minimum hole rules
+     off-grid geometry rules
+     contact and via placement rules
+
+These rules are important because the chip has to be manufacturable. If the layout violates design rules, the fabricated chip may have shorts, opens, reliability issues, or may fail during manufacturing.
+
+In simple terms:
+
+DRC checks whether the layout can be manufactured correctly.
+
+In OpenLane, DRC is mainly performed using: Magic
+
+Magic uses the SKY130 technology rule files to check the final layout. It analyzes the generated physical layout and reports any design rule violations.
+
+The final DRC report showed:
+
+     DRC COUNT: 0
+
+This means that the final routed layout had zero reported DRC violations.
+
+The result confirms that the generated layout satisfies the checked SKY130 physical design rules.
+
+Layout Versus Schematic
+
+Layout Versus Schematic, or LVS, checks whether the physical layout electrically matches the intended circuit.
+
+After routing, the design exists as a physical layout containing standard cells, wires, vias, pins, and metal connections. However, it is possible for a layout to be physically clean but electrically incorrect. For example, a signal may be accidentally disconnected, two nets may be shorted, or a pin connection may not match the synthesized netlist.
+
+LVS prevents this by comparing two versions of the design:
+
+     1. The reference netlist generated from synthesis
+     2. The netlist extracted from the final physical layout
+
+If both netlists match, then the physical layout correctly represents the intended circuit.
+
+LVS checks for mismatches such as:
+
+     missing nets
+     extra nets
+     shorted nets
+     open connections
+     wrong pin connections
+     device mismatches
+     property mismatches
+     incorrect cell connections
+
+For a standard-cell digital design, LVS ensures that the final physical connections match the gate-level netlist produced after synthesis and implementation.
+
+This is important because the final GDS should not just look correct. It must also behave like the original circuit.
+
+In OpenLane, LVS is mainly performed using: Netgen
+
+The final LVS report showed:
+     
+     Total errors = 0
+
+The report also indicated that there were no net, device, pin, or property mismatches.
+
+This means the physical layout matched the intended gate-level circuit.
+
+Antenna Check:
+
+Antenna checking verifies whether long metal wires connected to transistor gates can collect excessive charge during chip fabrication.
+
+During fabrication, metal layers are formed step by step using plasma-based processes. Long metal wires can accumulate charge while they are being manufactured. If this charge is connected to a thin MOS gate oxide, it can damage the transistor gate.
+
+This problem is called the antenna effect.
+
+Antenna violations are not usually logical RTL problems. They are physical manufacturing problems that appear after placement and routing.
+
+Antenna violations usually happen when a long metal wire is connected to a sensitive transistor gate before there is a safe discharge path.
+
+The longer the metal wire connected to the gate, the more charge it can collect during fabrication.
+
+This can cause:
+     
+     gate oxide damage
+     transistor reliability issues
+     manufacturing failure
+     reduced chip yield
+
+Therefore, antenna rules are checked after routing.
+
+In the initial OpenLane run, the design did not pass antenna signoff. The antenna report showed violations after routing:
+
+Pin antenna violations = 2
+Net antenna violations = 2
+
+This meant that some routed nets had antenna ratios exceeding the allowed SKY130 antenna rules. These were not RTL or functional simulation errors. The floating-point adder logic itself was still correct, but the physical layout needed additional protection against fabrication-related antenna effects.
+
+To fix this, heuristic diode insertion was enabled in the OpenLane configuration:
+
+set ::env(DIODE_INSERTION_STRATEGY) 3
+set ::env(RUN_HEURISTIC_DIODE_INSERTION) 1
+
+The important setting was:
+
+set ::env(RUN_HEURISTIC_DIODE_INSERTION) 1
+
+This allowed OpenLane to insert additional antenna protection diodes during the physical implementation flow. These diode cells provide safe discharge paths for charge that may accumulate on long metal wires during fabrication.
+
+Before enabling heuristic diode insertion, only a small number of diode cells were inserted. After enabling it, the final design contained:
+
+     Diode Cells = 581
+
+The increase in diode cells was expected because OpenLane inserted additional physical protection cells to resolve the antenna violations. These diode cells do not change the logical functionality of the floating-point adder. They are physical-only protection cells added to make the layout safe for fabrication.
+
+After enabling heuristic diode insertion and rerunning the flow, the final antenna results were:
+
+     Pin antenna violations = 0
+     Net antenna violations = 0
+
+This means the final routed design passed antenna checks.
+
+The antenna issue was therefore successfully resolved:
+
+     Initial run  : 2 pin antenna violations, 2 net antenna violations
+     Final run    : 0 pin antenna violations, 0 net antenna violations
+     Fix applied  : Heuristic diode insertion enabled
+
+
+<img width="457" height="277" alt="image" src="https://github.com/user-attachments/assets/dd328cc5-f751-48e9-a098-553802eb5836" />
+
+
+Physical verification is one of the most important parts of the ASIC flow because it proves that the final layout is not only functionally and timing correct, but also physically valid.
+
+A design is not considered complete only because GDS is generated. The GDS must also pass signoff checks.
+
+For this project, the final OpenLane run passed:
+
+     timing signoff
+     DRC signoff
+     LVS signoff
+     antenna signoff
+
+This means the 4-stage pipelined IEEE-754 floating-point adder was successfully converted from RTL into a physically verified ASIC layout.
+
+GDSII Generation and Output Files
+
+After the design passed synthesis, floorplanning, placement, clock tree synthesis, routing, static timing analysis, DRC, LVS, and antenna checks, OpenLane generated the final ASIC implementation outputs.
+
+The most important final output of the RTL-to-GDSII flow is the GDSII file.
+
+GDSII is the standard file format used to represent the final physical layout of an ASIC. It contains the geometric shapes for the different layers of the chip, including standard cells, metal layers, vias, routing shapes, pins, and other physical layout structures.
+
+In simple terms:
+
+     RTL describes what the circuit should do.
+     
+     Gate-level netlist describes which standard cells are used.
+     
+     DEF describes where cells are placed and how routing is represented.
+     
+     GDSII describes the final physical layout that can be used for fabrication.
+
+Therefore, GDSII generation is the final major output stage of the ASIC flow. It confirms that the design has been converted from a Verilog RTL description into a physical layout database.
+
+Final output generation is handled by OpenLane using the physical design and verification tools inside the flow.
+
+The main tools involved are:
+
+     OpenROAD
+     Magic
+     KLayout
+
+OpenROAD generates the placed and routed physical design database and DEF files. Magic and KLayout are used in the final layout generation, checking, and viewing stages. Magic is also used for layout-related signoff tasks such as DRC and extraction, while KLayout is useful for visually inspecting the final GDSII layout.
+
+In this project, KLayout was used to open and view the generated fp_adder_top.gds file.
+
+A GDSII file is the final layout file that represents the physical chip geometry.
+
+It contains information about:
+
+     standard-cell layouts
+     metal routing layers
+     vias between metal layers
+     pin shapes
+     cell placements
+     routing geometry
+     physical layer polygons
+
+<img width="730" height="322" alt="image" src="https://github.com/user-attachments/assets/6e3ad953-ee4d-4e03-be1d-de23dc6bcb71" />
+
+     Difference Between Final GDS, DEF, and Gate-Level Netlist
+     
+     The final output files represent the design in different forms.
+     
+     Gate-Level Netlist
+     
+     The gate-level netlist is a Verilog file that shows the design as a connection of standard cells.
+     
+     It answers:
+     
+     Which logic cells are used?
+     How are the cells connected?
+     
+     This file is useful for logic-level verification and for understanding the mapped standard-cell implementation.
+     
+     DEF File
+     
+     The DEF file contains physical design information such as placement, routing, pins, and design dimensions.
+     
+     It answers:
+     
+     Where are the cells placed?
+     Where are the pins located?
+     How are the nets routed?
+     
+     DEF is useful for physical design tools and intermediate backend stages.
+     
+     GDSII File
+     
+     The GDSII file is the final layout database containing actual physical geometry.
+     
+     It answers:
+     
+     What does the final chip layout physically look like?
+     What polygons exist on each manufacturing layer?
+     
+     This is the final layout file viewed in KLayout.
+
+Output Summary
+
+|---|---:|---|
+| Final GDSII | Generated | `fp_adder_top.gds` |
+| Final DEF | Generated | `fp_adder_top.def` |
+| Final Gate-Level Netlist | Generated | `fp_adder_top.v` |
+| KLayout View | Verified | Final GDS opened in KLayout |
+| Timing Signoff | Passed | Positive setup/hold slack |
+| DRC Signoff | Passed | `0` DRC violations |
+| LVS Signoff | Passed | `0` LVS errors |
+| Antenna Signoff | Passed | `0` antenna violations |
+
+
+The successful generation of the final GDSII layout, along with clean timing, DRC, LVS, and antenna reports, confirms that the floating-point adder was successfully implemented as a physically verified ASIC layout using OpenLane and the SKY130 PDK.
 
 CURRENT LIMITATIONS :
 
