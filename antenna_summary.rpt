@@ -1,0 +1,14 @@
+ANTENNA SIGNOFF SUMMARY
+=======================
+
+Design: fp_adder_top
+Run: RUN_2026.06.24_10.54.13
+
+Pin Antenna Violations : 0
+Net Antenna Violations : 0
+Antenna Diode Cells    : 581
+
+Result: PASSED
+
+Note:
+The antenna violators report is empty because no antenna violations were found in the final OpenLane run.
