@@ -10,5 +10,4 @@ Antenna Diode Cells    : 581
 
 Result: PASSED
 
-Note:
-The antenna violators report is empty because no antenna violations were found in the final OpenLane run.
+
