@@ -1912,15 +1912,16 @@ It contains information about:
 
 Output Summary
 
-     |---|---:|---|
-     | Final GDSII | Generated | `fp_adder_top.gds` |
-     | Final DEF | Generated | `fp_adder_top.def` |
-     | Final Gate-Level Netlist | Generated | `fp_adder_top.v` |
-     | KLayout View | Verified | Final GDS opened in KLayout |
-     | Timing Signoff | Passed | Positive setup/hold slack |
-     | DRC Signoff | Passed | `0` DRC violations |
-     | LVS Signoff | Passed | `0` LVS errors |
-     | Antenna Signoff | Passed | `0` antenna violations |
+| Output / Check | Status |
+|---|---|
+| Final GDSII | Generated |
+| Final DEF | Generated |
+| Final Gate-Level Netlist | Generated |
+| KLayout View | Verified |
+| Timing Signoff | Passed |
+| DRC Signoff | Passed |
+| LVS Signoff | Passed |
+| Antenna Signoff | Passed |
 
 
 The successful generation of the final GDSII layout, along with clean timing, DRC, LVS, and antenna reports, confirms that the floating-point adder was successfully implemented as a physically verified ASIC layout using OpenLane and the SKY130 PDK.
