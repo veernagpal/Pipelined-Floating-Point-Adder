@@ -443,6 +443,8 @@ Summaries Obtained for Different Tolerances :
 
 As the tolerance is reduced, fewer test cases pass because the comparison becomes stricter. The main accuracy loss happens during mantissa alignment, where the mantissa of the smaller-exponent operand is right-shifted. In the current RTL, the bits shifted out are discarded, so some precision gets lost before arithmetic even happens. Since guard, round, and sticky bits are not implemented, these truncation errors show up as small differences from Python’s highly accurate reference result.
 
+(if you have actually read till here, "HELLO! My Projects must really interest you lmfao" The ASIC flow section is intentionally large because it doubles as my future reference guide. Yes, it is long. No, I do not plan to rediscover what Floorplanning, Placement , CTS, routing, antenna fixes, DRC, LVS checks mean every time I reopen this project. :)
+
 <a id="asic-flow"></a>
 ASIC FLOW : 
 
