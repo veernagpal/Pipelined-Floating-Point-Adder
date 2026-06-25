@@ -807,16 +807,17 @@ The final config.tcl used for the clean OpenLane run was:
      set ::env(DIODE_INSERTION_STRATEGY) 3
      set ::env(RUN_HEURISTIC_DIODE_INSERTION) 1
 
-Configuration Parameter	             Value	                           Purpose
-DESIGN_NAME	                    fp_adder_top	      Specifies the top-level Verilog module
-VERILOG_FILES	                       src/*.v	          Includes all RTL source files
-CLOCK_PORT	                        clk	               Defines the main clock signal
-CLOCK_PERIOD	                       20 ns	             Sets the target timing constraint
-FP_CORE_UTIL	                        35	             Sets relaxed floorplan utilization
-PL_TARGET_DENSITY	                  0.45                   Controls placement density
-SYNTH_STRATEGY	                      AREA 0	         Uses area-oriented synthesis optimization
-DIODE_INSERTION_STRATEGY	              3	          Enables antenna diode insertion strategy
-RUN_HEURISTIC_DIODE_INSERTION	         1	      Adds extra diode insertion to fix antenna violations
+| Configuration Parameter | Value | Purpose |
+|---|---|---|
+| `DESIGN_NAME` | `fp_adder_top` | Specifies the top-level Verilog module |
+| `VERILOG_FILES` | `src/*.v` | Includes all RTL source files |
+| `CLOCK_PORT` | `clk` | Defines the main clock signal |
+| `CLOCK_PERIOD` | `20 ns` | Sets the target timing constraint |
+| `FP_CORE_UTIL` | `35` | Sets relaxed floorplan utilization |
+| `PL_TARGET_DENSITY` | `0.45` | Controls placement density |
+| `SYNTH_STRATEGY` | `AREA 0` | Uses area-oriented synthesis optimization |
+| `DIODE_INSERTION_STRATEGY` | `3` | Enables antenna diode insertion strategy |
+| `RUN_HEURISTIC_DIODE_INSERTION` | `1` | Adds extra diode insertion to fix antenna violations |
 
 The 20 ns clock period gave the design a reasonable timing target. The 35% core utilization and 0.45 placement density gave the backend tools enough whitespace for routing and optimization. The area-oriented synthesis strategy helped keep the synthesized design compact. Finally, heuristic diode insertion was enabled to resolve antenna violations and achieve clean physical signoff.
 
@@ -881,6 +882,32 @@ This file represents the synthesized version of the RTL using SKY130 standard ce
 
 <img width="701" height="82" alt="image" src="https://github.com/user-attachments/assets/d60c1a48-3076-49c7-8601-340cb190ad5a" />
 
+
+Synthesis Summarized : 
+
+| Category | Parameter | Count |
+|---|---|---:|
+| Routing & Wiring | Wires Count | `1,257` |
+| Routing & Wiring | Wire Bits | `2,502` |
+| Routing & Wiring | Public Wires Count | `116` |
+| Routing & Wiring | Public Wire Bits | `1,361` |
+| Routing & Wiring | Routed Wire Length | `45,024` |
+| Routing & Wiring | Vias | `10,347` |
+| Physical Cell Breakdown | Total Cells | `5,459` |
+| Physical Cell Breakdown | Synthesized Logic Cells | `1,250` |
+| Physical Cell Breakdown | Non-Physical Cells | `1,406` |
+| Physical Cell Breakdown | Fill Cells | `1,089` |
+| Physical Cell Breakdown | Decap Cells | `1,886` |
+| Physical Cell Breakdown | Welltap Cells | `497` |
+| Physical Cell Breakdown | Antenna Diode Cells | `581` |
+| Logic Gate Distribution (Yosys/ABC) | XOR Gates | `129` |
+| Logic Gate Distribution (Yosys/ABC) | OR Gates | `186` |
+| Logic Gate Distribution (Yosys/ABC) | XNOR Gates | `6` |
+| Logic Gate Distribution (Yosys/ABC) | AND Gates | `63` |
+| Logic Gate Distribution (Yosys/ABC) | NOR Gates | `70` |
+| Logic Gate Distribution (Yosys/ABC) | NAND Gates | `8` |
+| Logic Gate Distribution (Yosys/ABC) | DFF / Pipeline Registers | `~166` |
+| Logic Gate Distribution (Yosys/ABC) | MUX / Multiplexers | `318` |
 
 2. Floor-Planning :
 
@@ -1908,7 +1935,11 @@ It contains information about:
      What does the final chip layout physically look like?
      What polygons exist on each manufacturing layer?
      
-     This is the final layout file viewed in KLayout.
+This is the final layout file viewed in KLayout.
+
+
+<img width="1162" height="873" alt="Screenshot 2026-06-24 174857" src="https://github.com/user-attachments/assets/ccd9edf2-45da-48c4-8cf2-47423d6610f9" />
+
 
 Output Summary
 
