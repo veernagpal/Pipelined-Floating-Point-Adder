@@ -2048,6 +2048,7 @@ Output Summary
 
 The successful generation of the final GDSII layout, along with clean timing, DRC, LVS, and antenna reports, confirms that the floating-point adder was successfully implemented as a physically verified ASIC layout using OpenLane and the SKY130 PDK.
 
+
 Some Additional info : 
 
 Overclocking Potential
