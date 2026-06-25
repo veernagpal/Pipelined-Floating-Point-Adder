@@ -1,0 +1,177 @@
+How to Run the ASIC Flow
+
+This section shows the basic commands required to run the OpenLane ASIC flow for the pipelined floating-point adder and view the main implementation metrics.
+
+1. Go to the OpenLane Directory
+cd ~/OpenLane
+2. Check the Design Folder
+
+The OpenLane design folder should be present at:
+
+ls designs/fp_adder_pipelined
+
+Expected files:
+
+config.tcl
+src/
+
+The synthesizable RTL should be inside:
+
+ls designs/fp_adder_pipelined/src
+3. Run the OpenLane Flow
+
+Run the complete RTL-to-GDSII flow:
+
+./flow.tcl -design fp_adder_pipelined
+
+If OpenLane is being used through the Docker shell, first enter the OpenLane environment:
+
+make mount
+
+Then inside the OpenLane shell, run:
+
+./flow.tcl -design fp_adder_pipelined
+
+This runs:
+
+synthesis
+floorplanning
+placement
+clock tree synthesis
+routing
+static timing analysis
+power analysis
+DRC
+LVS
+antenna checks
+final GDS generation
+4. Select the Latest Run
+
+After the flow completes, select the latest generated run automatically:
+
+cd ~/OpenLane
+RUN=$(ls -td designs/fp_adder_pipelined/runs/RUN_* | head -1)
+
+echo "Using run directory:"
+echo $RUN
+5. View Final Output Files
+echo "===== FINAL GDS ====="
+find $RUN/results/final/gds -type f
+
+echo
+echo "===== FINAL DEF ====="
+find $RUN/results/final/def -type f
+
+echo
+echo "===== FINAL GATE-LEVEL NETLIST ====="
+find $RUN/results/final/verilog -type f
+
+The important final files are:
+
+fp_adder_top.gds
+fp_adder_top.def
+fp_adder_top.v
+6. View Main ASIC Metrics
+python3 - <<'PY'
+import csv
+from pathlib import Path
+
+run = Path("designs/fp_adder_pipelined/runs")
+latest = sorted(run.glob("RUN_*"), key=lambda p: p.stat().st_mtime, reverse=True)[0]
+metrics = latest / "reports" / "metrics.csv"
+
+print("===== MAIN ASIC METRICS =====")
+print(f"Run Directory: {latest}")
+
+with open(metrics, newline="") as f:
+    row = next(csv.DictReader(f))
+
+wanted = {
+    "DIEAREA_mm^2": "Die Area",
+    "CoreArea_um^2": "Core Area",
+    "FP_CORE_UTIL": "Core Utilization Setting",
+    "OpenDP_Util": "OpenDP Utilization",
+    "wire_length": "Routed Wire Length",
+    "vias": "Vias",
+    "tritonRoute_violations": "TritonRoute Violations",
+    "Short_violations": "Short Violations",
+    "MetSpc_violations": "Metal Spacing Violations",
+    "OffGrid_violations": "Off-Grid Violations",
+    "pin_antenna_violations": "Pin Antenna Violations",
+    "net_antenna_violations": "Net Antenna Violations",
+    "DiodeCells": "Antenna Diode Cells",
+}
+
+for key, label in wanted.items():
+    print(f"{label:30s}: {row.get(key, 'N/A')}")
+PY
+7. View STA Summary
+echo "===== STA SUMMARY ====="
+
+for f in $(find $RUN/reports/signoff -iname "*sta.summary.rpt" | sort); do
+    echo
+    echo "Report: $(basename "$f")"
+
+    TNS=$(awk '/^report_tns/{flag=1; next} flag && /^tns/{print $2; flag=0}' "$f")
+    WNS=$(awk '/^report_wns/{flag=1; next} flag && /^wns/{print $2; flag=0}' "$f")
+    SETUP=$(awk '/report_worst_slack -max/{flag=1; next} flag && /worst slack/{print $3; flag=0}' "$f")
+    HOLD=$(awk '/report_worst_slack -min/{flag=1; next} flag && /worst slack/{print $3; flag=0}' "$f")
+
+    echo "TNS         : $TNS"
+    echo "WNS         : $WNS"
+    echo "Setup Slack : ${SETUP} ns"
+    echo "Hold Slack  : ${HOLD} ns"
+done
+8. View Power Summary
+echo "===== POWER SUMMARY ====="
+
+for f in \
+$RUN/reports/signoff/28-mca/rcx_min_sta.power.rpt \
+$RUN/reports/signoff/32-mca/rcx_nom_sta.power.rpt \
+$RUN/reports/signoff/30-mca/rcx_max_sta.power.rpt
+do
+    echo
+    echo "Report: $(basename "$f")"
+    grep -i "internal\|switching\|leakage\|total" "$f"
+done
+9. View Physical Signoff Summary
+echo "===== PHYSICAL SIGNOFF SUMMARY ====="
+
+echo
+echo "----- DRC -----"
+grep -i "COUNT" $RUN/reports/signoff/drc.rpt
+
+echo
+echo "----- LVS -----"
+find $RUN/reports/signoff -iname "*lvs*rpt" -exec grep -i "Total errors" {} \;
+
+echo
+echo "----- ANTENNA -----"
+python3 - <<'PY'
+import csv
+from pathlib import Path
+
+run = Path("designs/fp_adder_pipelined/runs")
+latest = sorted(run.glob("RUN_*"), key=lambda p: p.stat().st_mtime, reverse=True)[0]
+metrics = latest / "reports" / "metrics.csv"
+
+with open(metrics, newline="") as f:
+    row = next(csv.DictReader(f))
+
+print(f"Pin Antenna Violations : {row.get('pin_antenna_violations', 'N/A')}")
+print(f"Net Antenna Violations : {row.get('net_antenna_violations', 'N/A')}")
+print(f"Antenna Diode Cells    : {row.get('DiodeCells', 'N/A')}")
+PY
+10. Open Final GDS Layout
+
+To open the final GDS folder in Windows Explorer from WSL:
+
+explorer.exe "$(wslpath -w $RUN/results/final/gds)"
+
+The final GDS file can be opened using KLayout:
+
+fp_adder_top.gds
+
+If KLayout is installed inside Linux, it can also be opened directly using:
+
+klayout $RUN/results/final/gds/fp_adder_top.gds
