@@ -2102,7 +2102,6 @@ FUTURE IMPROVEMENTS AND WORK :
      -Implement guard, round, and sticky bits
      -Add configurable rounding modes
      -Add overflow, underflow, invalid, and inexact flags
-     -Extend the project into synthesis and ASIC flow 
 
 
 *~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~ PROJECT DONE UNDER THE ACM SMP UMBRELLA [DIGITAL-D2] *~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
