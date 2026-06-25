@@ -2,24 +2,23 @@ This project implements a 32-bit IEEE-754 single-precision Floating Point Adder 
 
 Repository Overview (Quick Links) : 
 
-- [Pipeline Stages](#pipeline-stages)
-- [Output Verification via Waveform Analysis](#output-verification-via-waveform-analysis)
-- [Python Based Testing Environment](#python-based-testing-environment)
+- [RTL](#pipeline-stages)
+- [Waveform Verification](#waveform-verification)
+- [Python-Based Testing Environment](#python-testing)
 - [ASIC Flow](#asic-flow)
 - [OpenLane Configuration](#openlane-configuration)
-- [Stages of the ASIC Flow](#stages-of-the-asic-flow)
-- [Synthesis](#1-synthesis)
-- [Floorplanning](#2-floor-planning)
-- [Placement](#3-placement)
-- [Clock Tree Synthesis](#4-clock-tree-synthesis)
-- [Routing](#5-routing)
-- [Static Timing Analysis](#6static-timing-analysis)
+- [Synthesis](#synthesis)
+- [Floorplanning](#floorplanning)
+- [Placement](#placement)
+- [Clock Tree Synthesis](#cts)
+- [Routing](#routing)
+- [Static Timing Analysis](#sta)
 - [Power Analysis](#power-analysis)
-- [Physical Verification and Signoff](#physical-verification-and-signoff)
-- [Final GDSII Generation and Output Files](#final-gdsii-generation-and-output-files)
-- [Final Results Summary](#final-results-summary)
+- [Physical Verification and Signoff](#physical-verification)
+- [Final GDSII Generation](#final-gds)
+- [Final Results Summary](#final-results)
 
-
+<a id="pipeline-stages"></a>
 A 32-bit IEEE-754 single-precision floating-point number is represented as:
 
      Sign : 1 bit
@@ -127,6 +126,7 @@ Considering the following example to get an understanding of the Datapath
 
 <img width="771" height="787" alt="Screenshot 2026-06-24 012313" src="https://github.com/user-attachments/assets/4a9ffb06-820a-4a5c-bba5-0e7df9505a16" />
 
+<a id="waveform-verification"></a>
 
 OUTPUT VERIFICATION VIA WAVEFORM ANALYSIS
 
@@ -166,6 +166,7 @@ The following test cases were applied in the waveform testbench to check the bas
 
 These inputs were given one after another on consecutive positive clock edges. The output for each input pair appears only after the pipeline latency (3 clock cycles).
 
+<a id="python-testing"></a>
 PYTHON BASED TESTING ENVIRONMENT 
 
 A Python-based verification framework was developed to automate the testing of the pipelined floating-point adder.
@@ -442,7 +443,7 @@ Summaries Obtained for Different Tolerances :
 
 As the tolerance is reduced, fewer test cases pass because the comparison becomes stricter. The main accuracy loss happens during mantissa alignment, where the mantissa of the smaller-exponent operand is right-shifted. In the current RTL, the bits shifted out are discarded, so some precision gets lost before arithmetic even happens. Since guard, round, and sticky bits are not implemented, these truncation errors show up as small differences from Python’s highly accurate reference result.
 
-
+<a id="asic-flow"></a>
 ASIC FLOW : 
 
 The objective of this stage was to convert the synthesizable Verilog RTL of the 4-stage pipelined IEEE-754 single-precision floating-point adder into a physical ASIC layout. 
@@ -669,7 +670,7 @@ KLayout does not change the logic of the design in this project. It was used as 
 
 The final GDS layout viewed in KLayout represents the completed physical implementation of the 4-stage pipelined floating-point adder.
 
-
+<a id="openlane-configuration"></a>
 OpenLane Configuration
 
 After defining the toolchain, the next step was to set up the floating-point adder as an OpenLane-compatible design. OpenLane expects each design to be placed inside a dedicated design directory, containing the RTL source files and a configuration file that describes how the flow should be run.
@@ -842,7 +843,7 @@ The final config.tcl used for the clean OpenLane run was:
 The 20 ns clock period gave the design a reasonable timing target. The 35% core utilization and 0.45 placement density gave the backend tools enough whitespace for routing and optimization. The area-oriented synthesis strategy helped keep the synthesized design compact. Finally, heuristic diode insertion was enabled to resolve antenna violations and achieve clean physical signoff.
 
 Stages of the ASIC flow
-
+<a id="synthesis"></a>
 1. Synthesis : converts this high-level RTL into a gate level netlist made up of actual standard cells from the selected PDK such as:
 
           AND gates
@@ -928,7 +929,7 @@ Synthesis Summarized :
 | Logic Gate Distribution (Yosys/ABC) | NAND Gates | `8` |
 | Logic Gate Distribution (Yosys/ABC) | DFF / Pipeline Registers | `~166` |
 | Logic Gate Distribution (Yosys/ABC) | MUX / Multiplexers | `318` |
-
+<a id="floorplanning"></a>
 2. Floor-Planning :
 
 Floorplanning is the first major physical design step in the ASIC flow. After synthesis, the design exists as a gate-level netlist made up of SKY130 standard cells, but those cells do not yet have physical locations on silicon. Floorplanning creates the initial physical structure of the chip block so that placement, routing, clock tree synthesis, and signoff can be performed later.
@@ -998,6 +999,7 @@ Floor-Planning Metrics
 
 <img width="601" height="156" alt="image" src="https://github.com/user-attachments/assets/6f7061a0-f267-4531-b754-d8028ba8561a" />
 
+<a id="placement"></a>
 3. Placement :
 
 Placement is the stage where the synthesized standard cells are assigned physical locations inside the core area created during floorplanning.
@@ -1032,7 +1034,6 @@ Placement is usually performed in three major sub-stages:
 1. Global placement
 2. Placement optimization
 3. Detailed placement / legalization
-1. Global Placement
 
 Global placement is the first major placement step. At this stage, the tool assigns approximate locations to all the standard cells inside the core area.
 
@@ -1271,6 +1272,7 @@ OpenDP Utilization = 36.28%
 
 This indicates that after detailed placement, about 36.28% of the core placement area was occupied by cells. This value is close to the configured floorplan utilization target of 35%, showing that the design was placed in a relaxed and routable manner.
 
+<a id="cts"></a>
 4. Clock Tree Synthesis :
 
 Clock Tree Synthesis, usually called CTS, is the stage where the clock network of the design is physically built.
@@ -1376,6 +1378,7 @@ This reduces the load on each clock driver and improves clock quality.
 
 <img width="1217" height="302" alt="image" src="https://github.com/user-attachments/assets/063800d9-7998-417f-a6d6-8b87d40784af" />
 
+<a id="routing"></a>
 5. Routing
 
 Routing is the stage where the physical electrical connections between all placed cells are created using metal wires and vias.
@@ -1534,6 +1537,7 @@ Final Routing Metrics :
 
 <img width="490" height="255" alt="image" src="https://github.com/user-attachments/assets/0187eac6-fe06-4c4d-a3ef-516b14645be2" />
 
+<a id="sta"></a>
 6.Static Timing Analysis
 
 Static Timing Analysis, usually called STA, is the stage where the design is checked to confirm whether it can operate correctly at the target clock period.
@@ -1710,7 +1714,8 @@ TNS  = 0.00
 Worst Setup Slack = 4.74 ns
 Worst Hold Slack  = 0.14 ns
 
-Power Analysis : 
+<a id="power-analysis"></a>
+7. Power Analysis : 
 
 Post-routing power analysis was performed as part of the OpenLane signoff flow. The report provides internal power, switching power, leakage power, and total power across multiple timing corners.
 
@@ -1742,8 +1747,8 @@ Power changes across these corners because transistor speed, leakage, voltage as
 
 <img width="912" height="892" alt="image" src="https://github.com/user-attachments/assets/d117f784-7283-44cb-b581-4ce6a984fa63" />
 
-
-7. Physical Verification and Signoff:
+<a id="physical-verification"></a>
+8. Physical Verification and Signoff:
 
 After synthesis, floorplanning, placement, clock tree synthesis, routing, and timing analysis, the design must still be checked for physical correctness. A design can be logically correct and timing-clean, but it may still fail if the final layout violates manufacturing rules or does not electrically match the intended circuit.
 
@@ -1936,7 +1941,7 @@ Metrics Summarized  :
 | Pin Antenna Violations | `0` |
 | Net Antenna Violations | `0` |
 
-
+<a id="final-gds"></a>
 GDSII Generation and Output Files
 
 After the design passed synthesis, floorplanning, placement, clock tree synthesis, routing, static timing analysis, DRC, LVS, and antenna checks, OpenLane generated the final ASIC implementation outputs.
@@ -2024,7 +2029,7 @@ This is the final layout file viewed in KLayout.
 
 <img width="1162" height="873" alt="Screenshot 2026-06-24 174857" src="https://github.com/user-attachments/assets/ccd9edf2-45da-48c4-8cf2-47423d6610f9" />
 
-
+<a id="final-results"></a>
 Output Summary
 
 | Output / Check | Status |
