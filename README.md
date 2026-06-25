@@ -1,5 +1,25 @@
 This project implements a 32-bit IEEE-754 single-precision Floating Point Adder in Verilog using a 4-stage pipelined architecture. The design is verified using a Python-based testing environment that generates random floating-point test cases, runs RTL simulation, and compares the hardware output against Python-computed reference results.
 
+Repository Overview : 
+
+- [RTL Design](#rtl-design)
+- [Pipeline Stages](#pipeline-stages)
+- [Waveform Verification](#output-verification-via-waveform-analysis)
+- [Python-Based Testing Environment](#python-based-testing-environment)
+- [ASIC Flow](#asic-flow)
+- [OpenLane Configuration](#openlane-configuration)
+- [Synthesis](#1-synthesis)
+- [Floorplanning](#2-floor-planning)
+- [Placement](#3-placement)
+- [Clock Tree Synthesis](#4-clock-tree-synthesis)
+- [Routing](#5-routing)
+- [Static Timing Analysis](#6static-timing-analysis)
+- [Power Analysis](#power-analysis)
+- [Physical Verification and Signoff](#physical-verification-and-signoff)
+- [Final GDSII Generation and Output Files](#final-gdsii-generation-and-output-files)
+- [Final Results Summary](#final-results-summary)
+
+
 A 32-bit IEEE-754 single-precision floating-point number is represented as:
 
      Sign : 1 bit
@@ -1690,6 +1710,39 @@ TNS  = 0.00
 Worst Setup Slack = 4.74 ns
 Worst Hold Slack  = 0.14 ns
 
+Power Analysis : 
+
+Post-routing power analysis was performed as part of the OpenLane signoff flow. The report provides internal power, switching power, leakage power, and total power across multiple timing corners.
+
+A timing corner represents a different operating condition used during ASIC signoff. These corners model how the chip may behave under different process, voltage, and temperature conditions.
+
+In simple terms:
+
+Fastest Corner  = transistors and interconnect behave faster than typical
+Typical Corner  = normal expected operating condition
+Slowest Corner  = transistors and interconnect behave slower than typical
+
+Power changes across these corners because transistor speed, leakage, voltage assumptions, and switching behavior can vary depending on the operating condition. Therefore, checking power across multiple corners gives a more complete view of the design than using only one condition.
+
+| Term | Meaning |
+|---|---|
+| Fastest Corner | Transistors and interconnect behave faster than typical |
+| Typical Corner | Normal expected operating condition |
+| Slowest Corner | Transistors and interconnect behave slower than typical |
+| Internal Power | Power consumed inside standard cells during switching |
+| Switching Power | Power consumed while charging and discharging nets/wires |
+| Leakage Power | Power consumed even when transistors are not actively switching |
+| Total Power | Internal power + switching power + leakage power |
+
+| Power Corner | Internal Power | Switching Power | Leakage Power | Total Power |
+|---|---:|---:|---:|---:|
+| Fastest Corner | `1.06 mW` | `0.987 mW` | `0.0000144 mW` | `2.05 mW` |
+| Slowest Corner | `0.760 mW` | `0.654 mW` | `0.00855 mW` | `1.42 mW` |
+| Typical Corner | `0.947 mW` | `0.776 mW` | `0.00000959 mW` | `1.78 mW` |
+
+<img width="912" height="892" alt="image" src="https://github.com/user-attachments/assets/d117f784-7283-44cb-b581-4ce6a984fa63" />
+
+
 7. Physical Verification and Signoff:
 
 After synthesis, floorplanning, placement, clock tree synthesis, routing, and timing analysis, the design must still be checked for physical correctness. A design can be logically correct and timing-clean, but it may still fail if the final layout violates manufacturing rules or does not electrically match the intended circuit.
@@ -1853,6 +1906,37 @@ For this project, the final OpenLane run passed:
 
 This means the 4-stage pipelined IEEE-754 floating-point adder was successfully converted from RTL into a physically verified ASIC layout.
 
+Metrics Summarized  : 
+
+| Metric | Value |
+|---|---:|
+| Target Clock Period | `20 ns` |
+| Target Frequency | `50 MHz` |
+| Critical Path Delay | `5.47 ns` |
+| Estimated Maximum Frequency from Critical Path | `~182.8 MHz` |
+| Worst Setup Slack | `4.74 ns` |
+| Worst Hold Slack | `0.14 ns` |
+| WNS | `0.00 ns` |
+| TNS | `0.00 ns` |
+| Die Area | `0.041732 mm²` |
+| Core Area | `35223.7824 µm²` |
+| Core Utilization Setting | `35%` |
+| OpenDP Utilization | `36.28%` |
+| Synthesized Logic Cells | `1,250` |
+| Total Cells | `5,459` |
+| Non-Physical Cells | `1,406` |
+| Fill Cells | `1,089` |
+| Decap Cells | `1,886` |
+| Welltap Cells | `497` |
+| Antenna Diode Cells | `581` |
+| Routed Wire Length | `45,024` |
+| Vias | `10,347` |
+| DRC Violations | `0` |
+| LVS Errors | `0` |
+| Pin Antenna Violations | `0` |
+| Net Antenna Violations | `0` |
+
+
 GDSII Generation and Output Files
 
 After the design passed synthesis, floorplanning, placement, clock tree synthesis, routing, static timing analysis, DRC, LVS, and antenna checks, OpenLane generated the final ASIC implementation outputs.
@@ -1956,6 +2040,41 @@ Output Summary
 
 
 The successful generation of the final GDSII layout, along with clean timing, DRC, LVS, and antenna reports, confirms that the floating-point adder was successfully implemented as a physically verified ASIC layout using OpenLane and the SKY130 PDK.
+
+Some Additional info : 
+
+Overclocking Potential
+
+The design was constrained and verified at a target clock period of 20 ns, corresponding to an operating frequency of 50 MHz. Static Timing Analysis reported positive setup and hold slack, meaning the design successfully met timing at the target frequency.
+
+The worst setup slack was:
+     
+     Worst Setup Slack = 4.74 ns
+
+This indicates that the design had additional setup timing margin at the 20 ns clock period. A conservative estimate of the next possible clock period can be calculated by subtracting the worst setup slack from the original clock period:
+
+     Estimated tighter clock period = 20 ns - 4.74 ns = 15.26 ns
+
+This corresponds to an estimated frequency of:
+
+     Estimated frequency = 1 / 15.26 ns ≈ 65.5 MHz
+
+Therefore, based on setup slack, the design shows potential frequency headroom beyond the verified 50 MHz target.
+
+The timing report also showed a critical path delay of approximately 5.47 ns. Based only on this critical path delay, the theoretical maximum frequency would be:
+
+     fmax = 1 / 5.47 ns ≈ 182.8 MHz
+
+However, this should be treated only as a theoretical estimate. The design has been fully verified only at 50 MHz. To claim a higher operating frequency, the complete OpenLane flow should be rerun with a tighter clock constraint, followed by clean STA, DRC, LVS, and antenna signoff.
+
+A technically safe conclusion is:
+     
+     Verified operating frequency: 50 MHz
+     Conservative frequency estimate from setup slack: ~65.5 MHz
+     Theoretical critical-path estimate: ~182.8 MHz
+
+Higher-frequency operation is possible, but it must be validated through a new timing-driven implementation run.
+
 
 CURRENT LIMITATIONS :
 
